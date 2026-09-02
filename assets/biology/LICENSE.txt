@@ -1,0 +1,7 @@
+﻿HuBMAP Human Reference Atlas 3D organs
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+Source: https://humanatlas.io / https://cdn.humanatlas.io/digital-objects/ref-organ/
+
+Models are teaching meshes, not medical scans. Attribution: HuBMAP Consortium.

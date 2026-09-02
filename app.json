@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "Sheyon Ai",
+    "slug": "SheyonAi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "sheyonai",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Sheyon Ai needs camera access to scan text and attach photos.",
+        "NSPhotoLibraryUsageDescription": "Sheyon Ai needs photo library access to attach images.",
+        "NSMicrophoneUsageDescription": "Sheyon Ai needs microphone access for voice input.",
+        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to use speech recognition."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "softwareKeyboardLayoutMode": "pan",
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_MEDIA_IMAGES"
+      ],
+      "package": "com.anonymous.SheyonAi"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#208AEF",
+          "android": {
+            "image": "./assets/images/splash-icon.png",
+            "imageWidth": 76
+          }
+        }
+      ],
+      "expo-speech-recognition",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Sheyon Ai needs photo library access to attach images.",
+          "cameraPermission": "Sheyon Ai needs camera access to attach photos."
+        }
+      ],
+      "expo-font",
+      "expo-image",
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "Sheyon Ai needs camera access to scan text and attach photos."
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

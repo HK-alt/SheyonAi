@@ -1,0 +1,234 @@
+@import 'katex/dist/katex.min.css';
+
+:root {
+  --font-display:
+    Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
+    Segoe UI Symbol, Noto Color Emoji;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+  --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --focus-ring: rgba(37, 99, 235, 0.45);
+}
+
+html,
+body,
+#root {
+  font-family: var(--font-display);
+}
+
+body,
+input,
+textarea,
+button {
+  font-family: var(--font-display);
+}
+
+button,
+[role='button'],
+a {
+  cursor: pointer;
+}
+
+::selection {
+  background: rgba(37, 99, 235, 0.18);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+input:focus,
+textarea:focus,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(26, 25, 21, 0.22) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(26, 25, 21, 0.22);
+  border-radius: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Match chat prose sizing; display equations centered like DeepSeek. */
+.math-inline,
+.math-display {
+  color: inherit;
+}
+
+.math-inline {
+  display: inline;
+}
+
+.katex,
+.katex * {
+  color: inherit;
+  fill: currentColor;
+}
+
+.katex {
+  font-size: 1.05em;
+}
+
+.katex-display {
+  margin: 0.85em 0;
+  text-align: center;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.math-inline .katex {
+  font-size: 1em;
+}
+
+.math-display .katex-display {
+  margin: 0;
+}
+
+/* Colorful equation tokens — assistant prose only (not user bubbles). */
+.math-colorful {
+  --math-var: #2563eb;
+  --math-num: #c2410c;
+  --math-rel: #7c3aed;
+  --math-bin: #0f766e;
+  --math-op: #db2777;
+  --math-text: #475569;
+  --math-delim: #64748b;
+  --math-accent: #7c3aed;
+  --math-frac: #2563eb;
+  --math-plate: rgba(37, 99, 235, 0.07);
+  --math-plate-border: rgba(37, 99, 235, 0.18);
+  --math-rail: #2563eb;
+}
+
+.math-colorful.math-colorful-dark {
+  --math-var: #7dd3fc;
+  --math-num: #fbbf24;
+  --math-rel: #c4b5fd;
+  --math-bin: #5eead4;
+  --math-op: #f9a8d4;
+  --math-text: #cbd5e1;
+  --math-delim: #94a3b8;
+  --math-accent: #c4b5fd;
+  --math-frac: #7dd3fc;
+  --math-plate: rgba(125, 211, 252, 0.1);
+  --math-plate-border: rgba(125, 211, 252, 0.24);
+  --math-rail: #38bdf8;
+}
+
+.math-colorful .katex,
+.math-colorful .katex * {
+  color: var(--math-var);
+  fill: currentColor;
+}
+
+.math-colorful .katex .mord {
+  color: var(--math-num) !important;
+  fill: var(--math-num) !important;
+}
+
+.math-colorful .katex .mord.mathnormal,
+.math-colorful .katex .mord.mathit,
+.math-colorful .katex .mathnormal,
+.math-colorful .katex .mathit {
+  color: var(--math-var) !important;
+  fill: var(--math-var) !important;
+}
+
+.math-colorful .katex .mord.mathrm,
+.math-colorful .katex .mord.text,
+.math-colorful .katex .mathrm,
+.math-colorful .katex .textrm,
+.math-colorful .katex .text {
+  color: var(--math-text) !important;
+  fill: var(--math-text) !important;
+}
+
+.math-colorful .katex .mrel {
+  color: var(--math-rel) !important;
+  fill: var(--math-rel) !important;
+}
+
+.math-colorful .katex .mbin {
+  color: var(--math-bin) !important;
+  fill: var(--math-bin) !important;
+}
+
+.math-colorful .katex .mop {
+  color: var(--math-op) !important;
+  fill: var(--math-op) !important;
+}
+
+.math-colorful .katex .mopen,
+.math-colorful .katex .mclose,
+.math-colorful .katex .delimsizing,
+.math-colorful .katex .minner {
+  color: var(--math-delim) !important;
+  fill: var(--math-delim) !important;
+}
+
+.math-colorful .katex .accent,
+.math-colorful .katex .accent-body,
+.math-colorful .katex .vec,
+.math-colorful .katex .overline {
+  color: var(--math-accent) !important;
+  fill: var(--math-accent) !important;
+}
+
+.math-colorful .katex .frac-line,
+.math-colorful .katex .sqrt-line,
+.math-colorful .katex .overline-line,
+.math-colorful .katex .underline-line {
+  border-color: var(--math-frac) !important;
+  background: var(--math-frac) !important;
+}
+
+.math-colorful .katex svg,
+.math-colorful .katex svg path,
+.math-colorful .katex svg line {
+  fill: var(--math-accent) !important;
+  stroke: var(--math-accent) !important;
+}
+
+.math-inline.math-colorful {
+  padding: 0 1px;
+}
+
+.math-display.math-colorful {
+  position: relative;
+  background: var(--math-plate);
+  border: 1px solid var(--math-plate-border);
+  border-radius: 16px;
+  padding: 18px 22px 18px 26px;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.06);
+}
+
+.math-display.math-colorful::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--math-rail);
+}
+
+.math-display.math-colorful .katex {
+  font-size: 1.22em;
+}
