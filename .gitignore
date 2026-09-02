@@ -49,3 +49,5 @@ example
 # local deploy / MCP tooling artifacts
 agent-tools/
 .vercel
+
+.vercel
