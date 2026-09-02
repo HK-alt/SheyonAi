@@ -1,3 +1,5 @@
+import { publicEnv } from '@/lib/public-env';
+
 export type OAuthProvider = 'google' | 'apple';
 
 /**
@@ -9,7 +11,8 @@ export const isTestAuthEnabled = (() => {
   const flag = process.env.EXPO_PUBLIC_USE_TEST_AUTH;
   if (flag === 'true') return true;
   if (flag === 'false') return false;
-  return __DEV__;
+  if (__DEV__) return true;
+  return publicEnv.useTestAuthInProduction;
 })();
 
 const TEST_ACCOUNTS: Record<OAuthProvider, { email: string; name: string }> = {
