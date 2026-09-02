@@ -4,5 +4,10 @@
   "devCommand": "npx expo start --web",
   "installCommand": "npm install",
   "cleanUrls": true,
-  "framework": null
+  "framework": null,
+  "env": {
+    "EXPO_PUBLIC_SUPABASE_URL": "https://lfsacmdqjxtwgxqftrlh.supabase.co",
+    "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2FjbWRxanh0d2d4cWZ0cmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjM3NTgsImV4cCI6MjA5NjgzOTc1OH0.IfYQ4AjJNGvTNjQRI6CYsng4FomFY0T4cIUnTPkpYFo",
+    "EXPO_PUBLIC_USE_TEST_AUTH": "true"
+  }
 }
