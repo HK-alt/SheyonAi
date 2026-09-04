@@ -15,6 +15,7 @@ import { useChat } from '@/context/chat-context';
 import { useTheme } from '@/hooks/use-theme';
 import { getSubjectConfig, getSubjectTutorTitle } from '@/subject';
 import { useKeyboardInset, useWebKeyboardViewportPin } from '@/hooks/use-keyboard-inset';
+import { setWebBrowserUrlBarCollapsed } from '@/lib/web-browser-chrome';
 import { resolveMindMapContent } from '@/subject/mind-map-inference';
 import { MindMapExpandedPanel } from '@/subject/mind-map-modal';
 import type { MindElixirData } from '@/subject/mind-map-types';
@@ -94,6 +95,8 @@ export type ChatScreenProps = {
   hidePersistentSidebar?: boolean;
   /** Home Tools sheet → switch to the Research tab. */
   onOpenResearch?: () => void;
+  /** Fired when chat chrome hides/shows from message scrolling (fullscreen mode). */
+  onChromeVisibilityChange?: (visible: boolean) => void;
 };
 
 type ExpandedMapState = {
@@ -133,6 +136,7 @@ export function ChatScreen({
   nestedHeader = false,
   hidePersistentSidebar = false,
   onOpenResearch,
+  onChromeVisibilityChange,
 }: ChatScreenProps) {
   const theme = useTheme();
   const keyboardInset = useKeyboardInset();
@@ -155,6 +159,7 @@ export function ChatScreen({
   const { learningLevel } = useAppSettings();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [nodeDraft, setNodeDraft] = useState<string | null>(null);
   const [expandedMap, setExpandedMap] = useState<ExpandedMapState | null>(null);
@@ -192,6 +197,37 @@ export function ChatScreen({
 
   const messages = activeConversation?.messages ?? [];
   const showEmptyState = messages.length === 0 && !isTyping;
+
+  useEffect(() => {
+    setHeaderVisible(true);
+  }, [activeConversationId, showEmptyState]);
+
+  useEffect(() => {
+    onChromeVisibilityChange?.(headerVisible);
+  }, [headerVisible, onChromeVisibilityChange]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    if (keyboardInset > 0) {
+      setWebBrowserUrlBarCollapsed(false);
+      return;
+    }
+
+    // Debounce URL-bar pin — immediate toggle fights header collapse and loops.
+    const timer = setTimeout(() => {
+      setWebBrowserUrlBarCollapsed(!headerVisible);
+    }, headerVisible ? 120 : 280);
+
+    return () => clearTimeout(timer);
+  }, [headerVisible, keyboardInset]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    return () => {
+      setWebBrowserUrlBarCollapsed(false);
+    };
+  }, []);
 
   const lastMessage = messages[messages.length - 1];
   const lastParsedMindMap = useMemo(() => {
@@ -702,6 +738,7 @@ export function ChatScreen({
       onTutorFollowUp={subject === 'personal' ? handleTutorFollowUp : undefined}
       onQuizReview={subject === 'personal' ? handleQuizReview : undefined}
       onCoachReply={subject === 'personal' ? handleCoachReply : undefined}
+      onHeaderVisibilityChange={setHeaderVisible}
     />
   );
 
@@ -719,6 +756,7 @@ export function ChatScreen({
         <ChatHeader
           title={title}
           nested={nestedHeader}
+          visible={headerVisible}
           subtitle={
             subject === 'personal'
               ? TUTOR_EMPTY_STATE_HINTS[activeTutorMode]

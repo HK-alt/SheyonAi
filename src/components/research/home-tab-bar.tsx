@@ -1,5 +1,12 @@
+import { useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -12,7 +19,12 @@ export type HomeTab = 'chat' | 'camera' | 'research';
 type HomeTabBarProps = {
   active: HomeTab;
   onChange: (tab: HomeTab) => void;
+  /** When false, collapses for fullscreen chat scrolling. */
+  visible?: boolean;
 };
+
+const HEADER_ANIM_MS = 220;
+const HEADER_EASING = Easing.out(Easing.cubic);
 
 const TAB_ACCENTS = {
   light: {
@@ -61,7 +73,7 @@ function withAlpha(hex: string, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-export function HomeTabBar({ active, onChange }: HomeTabBarProps) {
+export function HomeTabBar({ active, onChange, visible = true }: HomeTabBarProps) {
   const theme = useTheme();
   const { resolvedScheme } = useThemePreference();
   const insets = useSafeAreaInsets();
@@ -70,85 +82,120 @@ export function HomeTabBar({ active, onChange }: HomeTabBarProps) {
   const trackBg = isWeb ? (resolvedScheme === 'dark' ? '#252321' : '#EFEDE8') : theme.backgroundElement;
   const trackBorder = theme.composerBorder;
 
+  const progress = useSharedValue(visible ? 1 : 0);
+  const measuredHeight = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withTiming(visible ? 1 : 0, {
+      duration: HEADER_ANIM_MS,
+      easing: HEADER_EASING,
+    });
+  }, [visible, progress]);
+
+  const collapseStyle = useAnimatedStyle(() => {
+    const h = measuredHeight.value;
+    if (h <= 0) {
+      return { overflow: 'hidden' as const };
+    }
+    return {
+      height: h * progress.value,
+      opacity: progress.value,
+      overflow: 'hidden' as const,
+    };
+  });
+
   return (
-    <View
-      style={[
-        styles.container,
-        isWeb && styles.containerWeb,
-        {
-          paddingTop: insets.top + (isWeb ? 10 : 6),
-          borderBottomColor: theme.headerBorder,
-          backgroundColor: theme.background,
-          zIndex: 2,
-        },
-      ]}>
+    <Animated.View style={[collapseStyle, { pointerEvents: visible ? 'auto' : 'none' }]}>
       <View
-        accessibilityRole="tablist"
+        onLayout={(event) => {
+          const next = event.nativeEvent.layout.height;
+          if (next > 0 && next >= measuredHeight.value - 0.5) {
+            measuredHeight.value = next;
+          }
+        }}
         style={[
-          styles.segment,
-          isWeb && styles.segmentWeb,
+          styles.container,
+          isWeb && styles.containerWeb,
           {
-            backgroundColor: trackBg,
-            borderColor: trackBorder,
+            paddingTop: insets.top + (isWeb ? 10 : 6),
+            borderBottomColor: theme.headerBorder,
+            backgroundColor: theme.background,
+            zIndex: 2,
           },
         ]}>
-        {BASE_TABS.map((tab) => {
-          const selected = active === tab.id;
-          const accent = accents[tab.id];
-          const label = 'webLabel' in tab ? (isWeb ? tab.webLabel : tab.nativeLabel) : tab.label;
-          const tint = selected ? accent : theme.textSecondary;
+        <View
+          accessibilityRole="tablist"
+          style={[
+            styles.segment,
+            isWeb && styles.segmentWeb,
+            {
+              backgroundColor: trackBg,
+              borderColor: trackBorder,
+            },
+          ]}>
+          {BASE_TABS.map((tab) => {
+            const selected = active === tab.id;
+            const accent = accents[tab.id];
+            const label = 'webLabel' in tab ? (isWeb ? tab.webLabel : tab.nativeLabel) : tab.label;
+            const tint = selected ? accent : theme.textSecondary;
 
-          return (
-            <Pressable
-              key={tab.id}
-              accessibilityRole="tab"
-              accessibilityState={{ selected }}
-              accessibilityLabel={label}
-              hitSlop={6}
-              onPress={() => onChange(tab.id)}
-              style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
-                styles.tab,
-                isWeb && styles.tabWeb,
-                selected && [
-                  styles.tabSelected,
-                  {
-                    backgroundColor: isWeb ? theme.composerBackground : theme.background,
-                    borderColor: isWeb ? withAlpha(accent, resolvedScheme === 'dark' ? 0.45 : 0.28) : trackBorder,
-                  },
-                ],
-                hovered && !selected && { backgroundColor: withAlpha(accent, 0.08) },
-                pressed && styles.pressed,
-              ]}>
-              <View
-                style={[
-                  isWeb && styles.iconWell,
-                  selected && isWeb && { backgroundColor: withAlpha(accent, resolvedScheme === 'dark' ? 0.22 : 0.14) },
+            return (
+              <Pressable
+                key={tab.id}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                accessibilityLabel={label}
+                hitSlop={6}
+                onPress={() => onChange(tab.id)}
+                style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+                  styles.tab,
+                  isWeb && styles.tabWeb,
+                  selected && [
+                    styles.tabSelected,
+                    {
+                      backgroundColor: isWeb ? theme.composerBackground : theme.background,
+                      borderColor: isWeb
+                        ? withAlpha(accent, resolvedScheme === 'dark' ? 0.45 : 0.28)
+                        : trackBorder,
+                    },
+                  ],
+                  hovered && !selected && { backgroundColor: withAlpha(accent, 0.08) },
+                  pressed && styles.pressed,
                 ]}>
-                <SymbolView
-                  name={selected ? tab.iconActive : tab.icon}
-                  size={isWeb ? 15 : 13}
-                  tintColor={tint}
-                  weight={selected ? 'semibold' : 'regular'}
-                />
-              </View>
-              <ThemedText
-                style={[
-                  styles.label,
-                  isWeb && styles.labelWeb,
-                  {
-                    color: tint,
-                    fontWeight: selected ? '700' : '500',
-                  },
-                ]}
-                numberOfLines={1}>
-                {label}
-              </ThemedText>
-              {selected ? <View style={[styles.activeBar, { backgroundColor: accent }]} /> : null}
-            </Pressable>
-          );
-        })}
+                <View
+                  style={[
+                    isWeb && styles.iconWell,
+                    selected &&
+                      isWeb && {
+                        backgroundColor: withAlpha(accent, resolvedScheme === 'dark' ? 0.22 : 0.14),
+                      },
+                  ]}>
+                  <SymbolView
+                    name={selected ? tab.iconActive : tab.icon}
+                    size={isWeb ? 15 : 13}
+                    tintColor={tint}
+                    weight={selected ? 'semibold' : 'regular'}
+                  />
+                </View>
+                <ThemedText
+                  style={[
+                    styles.label,
+                    isWeb && styles.labelWeb,
+                    {
+                      color: tint,
+                      fontWeight: selected ? '700' : '500',
+                    },
+                  ]}
+                  numberOfLines={1}>
+                  {label}
+                </ThemedText>
+                {selected ? <View style={[styles.activeBar, { backgroundColor: accent }]} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

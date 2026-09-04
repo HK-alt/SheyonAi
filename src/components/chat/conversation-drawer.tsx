@@ -75,12 +75,7 @@ export function ConversationDrawer({ visible, onClose }: ConversationDrawerProps
   if (!mounted) return null;
 
   return (
-    <View
-      pointerEvents={Platform.OS === 'web' ? undefined : 'box-none'}
-      style={[
-        StyleSheet.absoluteFill,
-        Platform.OS === 'web' ? { pointerEvents: 'box-none' as const } : null,
-      ]}>
+    <View style={[StyleSheet.absoluteFill, { pointerEvents: 'box-none' as const }]}>
       <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Dismiss menu" />
       </Animated.View>

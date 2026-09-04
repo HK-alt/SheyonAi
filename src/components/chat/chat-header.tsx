@@ -1,6 +1,12 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AssistantAvatar } from '@/components/chat/assistant-avatar';
@@ -8,6 +14,9 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { displayChatTitle } from '@/lib/chat-title';
+
+const HEADER_ANIM_MS = 220;
+const HEADER_EASING = Easing.out(Easing.cubic);
 
 type ChatHeaderProps = {
   title: string;
@@ -21,6 +30,8 @@ type ChatHeaderProps = {
   trailing?: ReactNode;
   /** Parent already applied the top safe-area inset (e.g. Home tab bar). */
   nested?: boolean;
+  /** When false, slides up and collapses to free space for messages. */
+  visible?: boolean;
 };
 
 type IconButtonProps = {
@@ -58,6 +69,7 @@ export function ChatHeader({
   showNewChat = true,
   trailing,
   nested = false,
+  visible = true,
 }: ChatHeaderProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -66,76 +78,114 @@ export function ChatHeader({
   const showMenu = Boolean(onBack || onOpenDrawer);
   const alignTitleStart = !showMenu || isWeb;
 
+  const progress = useSharedValue(visible ? 1 : 0);
+  const measuredHeight = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withTiming(visible ? 1 : 0, {
+      duration: HEADER_ANIM_MS,
+      easing: HEADER_EASING,
+    });
+  }, [visible, progress]);
+
+  const collapseStyle = useAnimatedStyle(() => {
+    const h = measuredHeight.value;
+    if (h <= 0) {
+      return { overflow: 'hidden' as const };
+    }
+    return {
+      height: h * progress.value,
+      opacity: progress.value,
+      overflow: 'hidden' as const,
+    };
+  });
+
   return (
-    <View
-      style={[
-        styles.container,
-        isWeb && styles.containerWeb,
-        {
-          paddingTop: nested ? (isWeb ? Spacing.one : Spacing.two) : insets.top + (isWeb ? Spacing.one : Spacing.two),
-          borderBottomColor: theme.headerBorder,
-          backgroundColor: theme.background,
-        },
-      ]}>
-      {onBack ? (
-        <IconButton onPress={onBack} accessibilityLabel="Go back" quiet={isWeb}>
-          <SymbolView
-            name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }}
-            size={18}
-            weight="semibold"
-            tintColor={theme.text}
-          />
-        </IconButton>
-      ) : onOpenDrawer ? (
-        <IconButton
-          onPress={onOpenDrawer}
-          accessibilityLabel="Open conversations"
-          quiet={isWeb}>
-          <SymbolView
-            name={{ ios: 'line.3.horizontal', android: 'menu', web: 'menu' }}
-            size={18}
-            weight="medium"
-            tintColor={theme.text}
-          />
-        </IconButton>
-      ) : null}
-
-      <View style={[styles.titleBlock, alignTitleStart && styles.titleBlockStart]}>
-        <View style={styles.titleRow}>
-          {isWeb ? null : <AssistantAvatar size={28} />}
-          <ThemedText type="smallBold" style={[styles.title, isWeb && styles.titleWeb]} numberOfLines={1}>
-            {displayChatTitle(title)}
-          </ThemedText>
-        </View>
-        {isWeb ? null : trailing ? <View style={styles.trailing}>{trailing}</View> : null}
-        {subtitle && !isWeb ? (
-          <ThemedText
-            type="small"
-            themeColor="textSecondary"
-            style={[styles.subtitle, alignTitleStart && styles.subtitleStart]}
-            numberOfLines={1}>
-            {subtitle}
-          </ThemedText>
-        ) : null}
-      </View>
-
-      <View style={styles.rightActions}>
-        {isWeb && trailing ? trailing : null}
-        {showNewChat ? (
+    <Animated.View style={[collapseStyle, { pointerEvents: visible ? 'auto' : 'none' }]}>
+      <View
+        onLayout={(event) => {
+          const next = event.nativeEvent.layout.height;
+          // Keep the natural full height; ignore clipped layouts while collapsing.
+          if (next > 0 && next >= measuredHeight.value - 0.5) {
+            measuredHeight.value = next;
+          }
+        }}
+        style={[
+          styles.container,
+          isWeb && styles.containerWeb,
+          {
+            paddingTop: nested
+              ? isWeb
+                ? Spacing.one
+                : Spacing.two
+              : insets.top + (isWeb ? Spacing.one : Spacing.two),
+            borderBottomColor: theme.headerBorder,
+            backgroundColor: theme.background,
+          },
+        ]}>
+        {onBack ? (
+          <IconButton onPress={onBack} accessibilityLabel="Go back" quiet={isWeb}>
+            <SymbolView
+              name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }}
+              size={18}
+              weight="semibold"
+              tintColor={theme.text}
+            />
+          </IconButton>
+        ) : onOpenDrawer ? (
           <IconButton
-            onPress={onNewChat}
-            accessibilityLabel="Start new chat"
+            onPress={onOpenDrawer}
+            accessibilityLabel="Open conversations"
             quiet={isWeb}>
             <SymbolView
-              name={{ ios: 'square.and.pencil', android: 'edit', web: 'edit' }}
-              size={17}
+              name={{ ios: 'line.3.horizontal', android: 'menu', web: 'menu' }}
+              size={18}
               weight="medium"
               tintColor={theme.text}
             />
           </IconButton>
         ) : null}
+
+        <View style={[styles.titleBlock, alignTitleStart && styles.titleBlockStart]}>
+          <View style={styles.titleRow}>
+            {isWeb ? null : <AssistantAvatar size={28} />}
+            <ThemedText
+              type="smallBold"
+              style={[styles.title, isWeb && styles.titleWeb]}
+              numberOfLines={1}>
+              {displayChatTitle(title)}
+            </ThemedText>
+          </View>
+          {isWeb ? null : trailing ? <View style={styles.trailing}>{trailing}</View> : null}
+          {subtitle && !isWeb ? (
+            <ThemedText
+              type="small"
+              themeColor="textSecondary"
+              style={[styles.subtitle, alignTitleStart && styles.subtitleStart]}
+              numberOfLines={1}>
+              {subtitle}
+            </ThemedText>
+          ) : null}
+        </View>
+
+        <View style={styles.rightActions}>
+          {isWeb && trailing ? trailing : null}
+          {showNewChat ? (
+            <IconButton
+              onPress={onNewChat}
+              accessibilityLabel="Start new chat"
+              quiet={isWeb}>
+              <SymbolView
+                name={{ ios: 'square.and.pencil', android: 'edit', web: 'edit' }}
+                size={17}
+                weight="medium"
+                tintColor={theme.text}
+              />
+            </IconButton>
+          ) : null}
+        </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

@@ -9,7 +9,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, shrink-to-fit=no, interactive-widget=resizes-content"
+          content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover, interactive-widget=resizes-content"
         />
         <ScrollViewStyleReset />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -26,8 +26,17 @@ export default function Root({ children }: PropsWithChildren) {
 }
 
 const documentBackground = `
+html, body, #root {
+  height: 100%;
+}
+@supports (height: 100dvh) {
+  html, body, #root {
+    height: 100dvh;
+  }
+}
 body {
   background-color: #F7F6F3;
+  overscroll-behavior-y: none;
 }
 @media (prefers-color-scheme: dark) {
   body {
