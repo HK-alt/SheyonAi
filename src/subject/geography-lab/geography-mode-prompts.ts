@@ -1,6 +1,12 @@
 import type { GeographyMode } from '@/types/chat';
 import type { SubjectPrompts } from '@/subject/subjects/types';
 import { SCIENCE_GRAPH_JSON_CONTRACT } from '@/subject/science-graph/graph-prompt';
+import {
+  GEOGRAPHY_DIAGRAM_ADDENDUM,
+  SUBJECT_DIAGRAM_ACCURACY_RULES,
+  SUBJECT_DIAGRAM_DESIGN_SYSTEM,
+  SUBJECT_DIAGRAM_HTML_CONTRACT,
+} from '@/subject/diagram-prompt';
 
 /**
  * Geography generate modes - keep in sync with GEOGRAPHY_MODE_PROMPTS in
@@ -12,12 +18,21 @@ Prefer: temperature vs latitude, rainfall by month (bar), population growth, urb
 Always include insights; annotations when thresholds matter. If unclear, use chartType "bar" for monthly rainfall (≥12 points) with insights.
 ` + SCIENCE_GRAPH_JSON_CONTRACT,
 
-  diagram: `The user selected Diagram mode. GENERATE a clear geography diagram now. Do not embed or link PhET or external libraries.
-Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
-CRITICAL: no external scripts or CDNs. All CSS and JS inline.
-Prefer SVG for water cycle, rock cycle, plate boundaries, river long profile, or urban land-use rings. Label arrows and processes clearly.
-Caption: "Generated diagram - teaching model."
-If the topic is unclear, draw the water cycle with evaporation, condensation, precipitation, and runoff. Keep JS under 180 lines. Keep all prose outside the fence.`,
+  diagram: `The user selected Diagram mode. GENERATE a publication-quality geography diagram now. Do not embed or link PhET or external libraries.
+` +
+    SUBJECT_DIAGRAM_HTML_CONTRACT +
+    `
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    GEOGRAPHY_DIAGRAM_ADDENDUM,
 
   sim: `The user selected Lab (Simulate) mode. GENERATE an interactive geography simulation now. Do not embed or link PhET, ArcGIS, or any other library.
 Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
@@ -94,7 +109,7 @@ export const GEOGRAPHY_MODE_PLACEHOLDERS: Record<GeographyMode, string> = {
 
 export const GEOGRAPHY_EMPTY_STATE_HINTS: Record<GeographyMode, string> = {
   graph: 'Describe a relationship - a teaching geography graph appears here.',
-  diagram: 'Describe a process or landform - a labeled diagram appears here.',
+  diagram: 'Name the process cycle or landform — e.g. water cycle, plate boundary. Use Map mode for real places.',
   sim: 'Describe a process - an interactive geography lab appears here.',
   map: 'Name a place — real boundary plus search, satellite, and measure tools.',
 };

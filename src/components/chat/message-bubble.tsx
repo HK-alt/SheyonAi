@@ -16,6 +16,7 @@ import { MessageActions } from '@/components/chat/message-actions';
 import { KeyTermsRow } from '@/components/chat/key-terms-row';
 import { CoachCard } from '@/components/chat/coach-card';
 import { FlashcardDeck } from '@/components/chat/flashcard-deck';
+import { PresentationCard } from '@/subject/presentation';
 import { HintCard } from '@/components/chat/hint-card';
 import { LessonCard } from '@/components/chat/lesson-card';
 import { PlanCard } from '@/components/chat/plan-card';
@@ -40,6 +41,10 @@ import {
   isTutorFlashcardsPending,
   tryParseTutorFlashcards,
 } from '@/subject/flashcard-parser';
+import {
+  isPresentationPending,
+  tryParsePresentation,
+} from '@/subject/presentation';
 import { tryParseTutorCoach } from '@/subject/coach-parser';
 import { tryParseTutorHint } from '@/subject/hint-parser';
 import { tryParseTutorLesson } from '@/subject/lesson-parser';
@@ -292,6 +297,11 @@ export function MessageBubble({
     isTutorFlashcardsPending(message.content, isStreaming);
   const quizPending =
     !isUser && !!message.quiz && isTutorQuizPending(message.content, isStreaming);
+  const parsedPresentation = !isUser ? tryParsePresentation(message.content) : null;
+  const presentationPending =
+    !isUser &&
+    !!message.presentation &&
+    isPresentationPending(message.content, isStreaming);
   const isParsedCard = Boolean(
     parsedMindMap ||
       parsedWebsitePreview ||
@@ -302,7 +312,8 @@ export function MessageBubble({
       parsedField ||
       parsedMolecule ||
       parsedFlashcards ||
-      parsedQuiz,
+      parsedQuiz ||
+      parsedPresentation,
   );
   const showMessageActions =
     !isStreaming &&
@@ -495,6 +506,15 @@ export function MessageBubble({
               molecule={parsedMolecule}
               onPress={() => onMoleculeExpand?.(message.id, parsedMolecule)}
             />
+          </>
+        ) : presentationPending ? (
+          <PendingContent content={message.content} label="Building slide deck…" isStreaming={isStreaming} />
+        ) : parsedPresentation ? (
+          <>
+            {parsedPresentation.introText.length > 0 && (
+              <MarkdownText content={parsedPresentation.introText} />
+            )}
+            <PresentationCard deck={parsedPresentation} />
           </>
         ) : parsedFlashcards ? (
           <>

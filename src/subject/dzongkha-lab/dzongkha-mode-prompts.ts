@@ -1,5 +1,10 @@
 import type { DzongkhaMode } from '@/types/chat';
 import type { SubjectPrompts } from '@/subject/subjects/types';
+import {
+  DZONGKHA_DIAGRAM_ADDENDUM,
+  SUBJECT_DIAGRAM_ACCURACY_RULES,
+  SUBJECT_DIAGRAM_DESIGN_SYSTEM,
+} from '@/subject/diagram-prompt';
 
 /**
  * Verified beginner seed forms only — labs must not invent Uchen outside this list.
@@ -35,10 +40,21 @@ Keep JS under 200 lines. Prose outside the fence.`,
   diagram: `The user selected Diagram mode for Dzongkha (practice UI only — Library mode is the accuracy path).
 ${SEED_LEXICON}
 If the request needs non-seed vocabulary: one English sentence only — switch to Library. No html fence.
-Otherwise: one short English intro + one \`\`\`html fence (<!DOCTYPE html>), no CDNs.
+Otherwise: one short English intro + one \`\`\`html fence (<!DOCTYPE html>), no CDNs. All CSS/JS inline.
 SVG diagram for S-O-V using ONLY seed tokens, e.g. ང | དགེ་རྒན | ཨིང → ང་དགེ་རྒན་ཨིང། with romanization under each node. Label that ཨིང/རེད are Dzongkha equatives (not Tibetan ཡིན).
 Caption: "Grammar practice from verified seed list — for other examples use Library mode."
-Keep JS under 180 lines. Prose outside the fence.`,
+Keep JS under 180 lines. Prose outside the fence.
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    DZONGKHA_DIAGRAM_ADDENDUM,
 
   sim: `The user selected Lab (Practice) mode for Dzongkha (practice UI only — Library mode is the accuracy path).
 ${SEED_LEXICON}

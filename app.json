@@ -8,7 +8,7 @@
     "scheme": "sheyonai",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "infoPlist": {
         "NSCameraUsageDescription": "Sheyon Ai needs camera access to scan text and attach photos.",
         "NSPhotoLibraryUsageDescription": "Sheyon Ai needs photo library access to attach images.",
@@ -64,7 +64,8 @@
           "cameraPermissionText": "Sheyon Ai needs camera access to scan text and attach photos."
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

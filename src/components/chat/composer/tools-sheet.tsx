@@ -19,6 +19,10 @@ type ToolsSheetProps = {
   onToggleDocuments: () => void;
   treeVizMode: TreeVizMode | null;
   onSelectTreeViz: (mode: TreeVizMode) => void;
+  presentationActive: boolean;
+  onTogglePresentation: () => void;
+  /** When false, hide tree viz (subject workspaces) */
+  showTreeViz?: boolean;
   onOpenResearch?: () => void;
   disabled?: boolean;
 };
@@ -96,6 +100,9 @@ export function ToolsSheet({
   onToggleDocuments,
   treeVizMode,
   onSelectTreeViz,
+  presentationActive,
+  onTogglePresentation,
+  showTreeViz = true,
   onOpenResearch,
   disabled,
 }: ToolsSheetProps) {
@@ -118,6 +125,11 @@ export function ToolsSheet({
 
   function handleTreeViz(mode: TreeVizMode) {
     onSelectTreeViz(mode);
+    onClose();
+  }
+
+  function handlePresentation() {
+    onTogglePresentation();
     onClose();
   }
 
@@ -144,25 +156,39 @@ export function ToolsSheet({
         />
       ) : null}
 
-      <ThemedText type="smallBold" style={styles.section}>
-        Visualizations
-      </ThemedText>
-      <ThemedText type="small" themeColor="textSecondary" style={styles.sectionHint}>
-        Describe a topic, then send
-      </ThemedText>
+      <ToolRow
+        label="Slides"
+        subtitle="Generate a professional slide deck"
+        icon={{ ios: 'play.rectangle.fill', android: 'slideshow', web: 'slideshow' }}
+        iconColor="#7C3AED"
+        active={presentationActive}
+        disabled={disabled}
+        onPress={handlePresentation}
+      />
 
-      {TREE_VIZ_MODES.map((mode) => (
-        <ToolRow
-          key={mode}
-          label={TREE_VIZ_MODE_LABELS[mode]}
-          subtitle={TREE_VIZ_MODE_SUBTITLES[mode]}
-          icon={TREE_VIZ_ICONS[mode]}
-          iconColor={TREE_VIZ_COLORS[mode]}
-          active={treeVizMode === mode}
-          disabled={disabled}
-          onPress={() => handleTreeViz(mode)}
-        />
-      ))}
+      {showTreeViz ? (
+        <>
+          <ThemedText type="smallBold" style={styles.section}>
+            Visualizations
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.sectionHint}>
+            Describe a topic, then send
+          </ThemedText>
+
+          {TREE_VIZ_MODES.map((mode) => (
+            <ToolRow
+              key={mode}
+              label={TREE_VIZ_MODE_LABELS[mode]}
+              subtitle={TREE_VIZ_MODE_SUBTITLES[mode]}
+              icon={TREE_VIZ_ICONS[mode]}
+              iconColor={TREE_VIZ_COLORS[mode]}
+              active={treeVizMode === mode}
+              disabled={disabled}
+              onPress={() => handleTreeViz(mode)}
+            />
+          ))}
+        </>
+      ) : null}
     </>
   );
 

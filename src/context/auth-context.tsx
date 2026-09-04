@@ -23,11 +23,13 @@ import {
 import { clearChatCacheForUser } from '@/lib/chat-cache';
 import { hasRealSupabaseSession } from '@/lib/dev-session';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import type { AppRole } from '@/types/database';
 
 // Required so the auth popup closes correctly on web.
 WebBrowser.maybeCompleteAuthSession();
 
 export type { OAuthProvider } from '@/lib/auth-config';
+export type { AppRole };
 
 type AuthContextValue = {
   session: Session | null;
@@ -39,7 +41,10 @@ type AuthContextValue = {
   isTestAuthMode: boolean;
   /** Session is local-only (Supabase auth blocked); chat runs in offline mock mode. */
   isDevBypassSession: boolean;
+  /** Role of the signed-in user: admin | teacher | student | null (unauthenticated). */
+  userRole: AppRole | null;
   signInWithProvider: (provider: OAuthProvider) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -190,22 +195,45 @@ async function signInWithOAuthProvider(provider: OAuthProvider) {
   }
 }
 
+/** Fetch the role and disabled status for a given user. Returns null role if account is disabled. */
+async function fetchUserStatus(userId: string): Promise<{ role: AppRole; isDisabled: boolean }> {
+  try {
+    const { data, error } = await supabase.rpc('admin_check_user_status', {
+      p_user_id: userId,
+    });
+    if (error || !data) return { role: 'student', isDisabled: false };
+    const raw = data as unknown as { role: AppRole; is_disabled: boolean };
+    return { role: raw.role, isDisabled: raw.is_disabled === true };
+  } catch {
+    return { role: 'student', isDisabled: false };
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
+  const [userRole, setUserRole] = useState<AppRole | null>(null);
   const previousUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (devBypassActive) {
         setIsLoading(false);
         return;
       }
       if (hasRealSupabaseSession(data.session)) {
+        const { role, isDisabled } = await fetchUserStatus(data.session.user.id);
+        if (isDisabled) {
+          // Account has been disabled — sign out immediately
+          await supabase.auth.signOut();
+          setIsLoading(false);
+          return;
+        }
         setSession(data.session);
         previousUserIdRef.current = data.session.user.id;
+        setUserRole(role);
       }
       setIsLoading(false);
     });
@@ -218,13 +246,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         previousUserIdRef.current = null;
         if (!devBypassActive) {
           setSession(null);
+          setUserRole(null);
         }
         return;
       }
       if (devBypassActive) return;
       if (hasRealSupabaseSession(nextSession)) {
-        setSession(nextSession);
-        previousUserIdRef.current = nextSession.user.id;
+        fetchUserStatus(nextSession.user.id).then(({ role, isDisabled }) => {
+          if (isDisabled) {
+            void supabase.auth.signOut();
+            return;
+          }
+          setSession(nextSession);
+          previousUserIdRef.current = nextSession.user.id;
+          setUserRole(role);
+        });
       }
     });
 
@@ -256,18 +292,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isTestAuthEnabled) {
       const newSession = await signInWithTestProvider(provider);
       await clearChatCacheForUser(priorUserId);
-      if (hasRealSupabaseSession(newSession)) {
-        previousUserIdRef.current = newSession.user.id;
-      } else {
-        previousUserIdRef.current = newSession.user.id;
-      }
+      const { role, isDisabled } = await fetchUserStatus(newSession.user.id);
+      if (isDisabled) throw new Error('This account has been disabled. Contact an administrator.');
+      previousUserIdRef.current = newSession.user.id;
       setSession(newSession);
-      router.replace('/');
+      setUserRole(role);
+      router.replace(role === 'admin' ? '/admin' : '/');
       return;
     }
 
     devBypassActive = false;
     await signInWithOAuthProvider(provider);
+  }, [session]);
+
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Supabase is not configured. Fill in your .env file first.');
+    }
+    const priorUserId = previousUserIdRef.current ?? session?.user?.id ?? null;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    if (!data.session) throw new Error('Sign in failed.');
+    const { role, isDisabled } = await fetchUserStatus(data.session.user.id);
+    if (isDisabled) {
+      await supabase.auth.signOut();
+      throw new Error('This account has been disabled. Contact an administrator.');
+    }
+    await clearChatCacheForUser(priorUserId);
+    previousUserIdRef.current = data.session.user.id;
+    setSession(data.session);
+    setUserRole(role);
+    router.replace(role === 'admin' ? '/admin' : '/');
   }, [session]);
 
   const signOut = useCallback(async () => {
@@ -280,6 +335,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearChatCacheForUser(priorUserId);
     previousUserIdRef.current = null;
     setSession(null);
+    setUserRole(null);
     router.replace('/sign-in');
   }, [session]);
 
@@ -293,10 +349,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isConfigured: isSupabaseConfigured,
       isTestAuthMode: isTestAuthEnabled,
       isDevBypassSession,
+      userRole,
       signInWithProvider,
+      signInWithEmail,
       signOut,
     }),
-    [session, isLoading, isDevBypassSession, signInWithProvider, signOut],
+    [session, isLoading, isDevBypassSession, userRole, signInWithProvider, signInWithEmail, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

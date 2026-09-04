@@ -14,7 +14,7 @@ import { useAppSettings } from '@/context/app-settings-context';
 import { useChat } from '@/context/chat-context';
 import { useTheme } from '@/hooks/use-theme';
 import { getSubjectConfig, getSubjectTutorTitle } from '@/subject';
-import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
+import { useKeyboardInset, useWebKeyboardViewportPin } from '@/hooks/use-keyboard-inset';
 import { resolveMindMapContent } from '@/subject/mind-map-inference';
 import { MindMapExpandedPanel } from '@/subject/mind-map-modal';
 import type { MindElixirData } from '@/subject/mind-map-types';
@@ -136,6 +136,7 @@ export function ChatScreen({
 }: ChatScreenProps) {
   const theme = useTheme();
   const keyboardInset = useKeyboardInset();
+  useWebKeyboardViewportPin(keyboardInset);
   const { width } = useWindowDimensions();
   const layoutHasSidebar = Platform.OS === 'web' && width >= 900;
   const persistentSidebar = layoutHasSidebar && !hidePersistentSidebar;
@@ -150,7 +151,6 @@ export function ChatScreen({
     regenerateLastReply,
     stopGenerating,
     createConversation,
-    updateWebsitePreviewHtml,
   } = useChat();
   const { learningLevel } = useAppSettings();
 
@@ -624,28 +624,6 @@ export function ChatScreen({
     setExpandedPreview(null);
   }, [expandedPreview]);
 
-  const handlePreviewHtmlApplied = useCallback(
-    (html: string) => {
-      if (!expandedPreview) return;
-      updateWebsitePreviewHtml(expandedPreview.messageId, html);
-      const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-      const title = titleMatch?.[1]?.replace(/\s+/g, ' ').trim();
-      setExpandedPreview((current) =>
-        current
-          ? {
-              ...current,
-              preview: {
-                ...current.preview,
-                htmlDocument: html,
-                title: title || current.preview.title,
-              },
-            }
-          : null,
-      );
-    },
-    [expandedPreview, updateWebsitePreviewHtml],
-  );
-
   const handleNodeSelect = useCallback((topic: string) => {
     setNodeDraft(`Explain "${topic}" in more detail`);
     setExpandedMap((current) => {
@@ -664,7 +642,6 @@ export function ChatScreen({
     <WebsitePreviewPanel
       preview={expandedPreview.preview}
       onDismiss={handleDismissPreview}
-      onHtmlApplied={handlePreviewHtmlApplied}
     />
   ) : expandedMap ? (
     <MindMapExpandedPanel data={expandedMap.data} onNodeSelect={handleNodeSelect} />
@@ -779,7 +756,14 @@ export function ChatScreen({
           }
         />
 
-        <View style={styles.flex}>
+        <View
+          style={[
+            styles.flex,
+            // Web: document is pinned to visualViewport while the keyboard is open
+            // (see useKeyboardInset). Keep this column scroll-contained so the dock
+            // stays at the visible bottom. Native still uses the spacer below.
+            Platform.OS === 'web' && keyboardInset > 0 ? styles.flexWebKeyboard : null,
+          ]}>
           <View
             style={[
               styles.contentSurface,
@@ -791,6 +775,7 @@ export function ChatScreen({
           <View
             style={[
               styles.composerDock,
+              Platform.OS === 'web' && keyboardInset > 0 ? styles.composerDockWebKeyboard : null,
               { backgroundColor: Platform.OS === 'web' ? 'transparent' : theme.background },
             ]}>
             <View style={styles.composerColumn}>
@@ -844,7 +829,9 @@ export function ChatScreen({
           </View>
           <View
             style={{
-              height: keyboardInset,
+              // Web pins html/body to visualViewport height — extra spacer would
+              // double-count and crush the message list. Native still needs it.
+              height: Platform.OS === 'web' ? 0 : keyboardInset,
               backgroundColor: theme.background,
               pointerEvents: 'none',
             }}
@@ -882,6 +869,10 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+    minHeight: 0,
+  },
+  flexWebKeyboard: {
+    overflow: 'hidden',
   },
   contentSurface: {
     flex: 1,
@@ -910,6 +901,9 @@ const styles = StyleSheet.create({
         boxShadow: 'none',
       },
     }),
+  },
+  composerDockWebKeyboard: {
+    zIndex: 5,
   },
   composerColumn: {
     width: '100%',

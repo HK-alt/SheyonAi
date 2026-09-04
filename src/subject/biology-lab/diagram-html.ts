@@ -1,5 +1,6 @@
 import { getDiagramCatalogEntry, type DiagramId } from '@/subject/biology-lab/diagram-catalog';
 import type { ParsedDiagram } from '@/subject/biology-lab/diagram-parser';
+import { buildDiagramDocumentShell } from '@/subject/diagram-document-shell';
 
 function esc(text: string): string {
   return text
@@ -570,62 +571,12 @@ const FIGURES: Record<DiagramId, () => string> = {
 
 export function buildDiagramViewerHtml(parsed: ParsedDiagram): string {
   const entry = getDiagramCatalogEntry(parsed.diagramId);
-  const title = parsed.title || entry.title;
-  const goal = parsed.focus || entry.learningGoal;
-  const note = parsed.closestNote
-    ? `<p class="note">${esc(parsed.closestNote)}</p>`
-    : '';
-  const figure = FIGURES[parsed.diagramId]();
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${esc(title)}</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: #f1f5f9; color: #0f172a;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    body { padding: 20px 20px 32px; }
-    .page { max-width: 960px; margin: 0 auto; }
-    header { margin-bottom: 16px; }
-    h1 { margin: 0 0 6px; font-size: 24px; font-weight: 650; letter-spacing: -0.02em; }
-    .goal { margin: 0; color: #64748b; font-size: 14px; line-height: 1.45; }
-    .note { margin: 8px 0 0; font-size: 12px; color: #b45309; }
-    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
-      box-shadow: 0 1px 3px rgba(15,23,42,.08); padding: 16px 16px 8px; overflow: auto; }
-    .fig { display: block; width: 100%; height: auto; max-width: 100%; }
-    .lbl { font-size: 12px; fill: #0f172a; font-family: system-ui, sans-serif; }
-    .lbl-sm { font-size: 11px; fill: #475569; font-family: system-ui, sans-serif; }
-    .panel-title { font-size: 13px; font-weight: 700; fill: #0f172a;
-      font-family: system-ui, sans-serif; letter-spacing: 0.02em; }
-    .stage-num { font-size: 14px; font-weight: 700; fill: #0f766e; font-family: system-ui, sans-serif; }
-    .layout { display: grid; gap: 16px; }
-    @media (min-width: 800px) {
-      .layout.has-callouts { grid-template-columns: 1fr 240px; align-items: start; }
-    }
-    .callouts { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px; }
-    .callouts h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: #0f766e; }
-    .callouts ul { margin: 0; padding-left: 18px; }
-    .callouts li { margin: 0 0 8px; font-size: 12px; line-height: 1.4; color: #334155; }
-    .callouts strong { color: #0f172a; }
-    footer { margin-top: 14px; font-size: 12px; color: #64748b; line-height: 1.4; }
-  </style>
-</head>
-<body>
-  <div class="page">
-    <header>
-      <h1>${esc(title)}</h1>
-      <p class="goal">${esc(goal)}</p>
-      ${note}
-    </header>
-    <div class="layout${parsed.labels.length ? ' has-callouts' : ''}">
-      <div class="card">${figure}</div>
-      ${labelCallouts(parsed.labels)}
-    </div>
-    <footer>${esc(entry.attribution)}</footer>
-  </div>
-</body>
-</html>`;
+  return buildDiagramDocumentShell({
+    title: parsed.title || entry.title,
+    goal: parsed.focus || entry.learningGoal,
+    note: parsed.closestNote ?? '',
+    bodyHtml: FIGURES[parsed.diagramId](),
+    caption: entry.attribution,
+    calloutsHtml: labelCallouts(parsed.labels),
+  });
 }

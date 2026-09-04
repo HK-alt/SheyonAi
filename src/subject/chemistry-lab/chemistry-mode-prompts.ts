@@ -1,6 +1,12 @@
 import type { ChemistryMode } from '../../types/chat';
 import type { SubjectPrompts } from '../subjects/types';
 import { SCIENCE_GRAPH_JSON_CONTRACT } from '@/subject/science-graph/graph-prompt';
+import {
+  CHEMISTRY_DIAGRAM_ADDENDUM,
+  SUBJECT_DIAGRAM_ACCURACY_RULES,
+  SUBJECT_DIAGRAM_DESIGN_SYSTEM,
+  SUBJECT_DIAGRAM_HTML_CONTRACT,
+} from '@/subject/diagram-prompt';
 
 /**
  * Chemistry generate modes — keep in sync with CHEMISTRY_MODE_PROMPTS in
@@ -11,14 +17,21 @@ export const CHEMISTRY_MODE_PROMPTS: Record<ChemistryMode, string> = {
 Prefer titration curves (pH vs volume), rate vs concentration, reaction energy profiles, or solubility curves.
 Always include annotations (e.g. equivalence point) + insights. If unclear, emit a titration line/area series with ≥48 points and labeled axes.
 ` + SCIENCE_GRAPH_JSON_CONTRACT,
-  diagram: `The user selected Diagram mode. GENERATE a clear chemistry diagram now. Do not embed or link PhET or external libraries.
-Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
-CRITICAL: fence language MUST be html (never \`\`\`svg or \`\`\`xml). Put any SVG markup inside <body>. No external scripts, CDNs, or images.
-VISIBILITY: every shape/text must use high-contrast colors (dark text on light fills or light text on dark fills). Never leave empty white regions where content should appear. Size the diagram to fit a 900×560 viewBox or page without clipping.
-PERIODIC TABLE RULE: never build a full 118-element interactive app. If the topic is the periodic table or trends, draw ONLY periods 1–3 (H through Ar) as a static CSS/SVG grid with EVERY cell filled (number + symbol + name), OR draw a labeled trend arrow diagram (electronegativity / atomic radius) across those rows. No search UI, no 118-element data arrays.
-Prefer Lewis structures, mechanism arrows, lab apparatus, or the compact periodic/trend visuals above.
-Caption in the page: "Generated diagram — teaching model."
-If the topic is unclear, draw the Lewis structure of water with lone pairs. Keep JS under 120 lines. Keep all prose outside the fence.`,
+  diagram: `The user selected Diagram mode. GENERATE a publication-quality chemistry diagram now. Do not embed or link PhET or external libraries.
+` +
+    SUBJECT_DIAGRAM_HTML_CONTRACT +
+    `
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    CHEMISTRY_DIAGRAM_ADDENDUM,
   sim: `The user selected Lab (Simulate) mode. GENERATE an interactive chemistry simulation now. Do not embed or link PhET, LabXchange, or any other library.
 Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
 CRITICAL: no external scripts or CDNs. All CSS and JS inline.
@@ -45,7 +58,7 @@ export const CHEMISTRY_MODE_PLACEHOLDERS: Record<ChemistryMode, string> = {
 
 export const CHEMISTRY_EMPTY_STATE_HINTS: Record<ChemistryMode, string> = {
   graph: 'Describe a relationship — a generated teaching graph appears here.',
-  diagram: 'Describe a structure or setup — a labeled diagram appears here.',
+  diagram: 'Name the structure and bonds to show — Lewis, mechanism, apparatus. Use Molecule 3D for spatial models.',
   sim: 'Describe a process — a generated interactive lab appears here.',
   molecule: 'Name a molecule — a 3D teaching model appears here.',
 };

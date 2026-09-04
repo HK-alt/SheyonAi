@@ -33,11 +33,12 @@ import { tryParseTutorLesson } from '@/subject/lesson-parser';
 import { tryParseTutorSolve } from '@/subject/solve-parser';
 import { tryParseTutorPlan } from '@/subject/plan-parser';
 import { tryParseTutorQuiz } from '@/subject/quiz-parser';
-import { tryParseWebsitePreview, replaceHtmlInPreviewContent } from '@/subject/website-preview-parser';
+import { tryParseWebsitePreview } from '@/subject/website-preview-parser';
 import { tryParseAnatomy } from '@/subject/biology-lab/anatomy-parser';
 import { tryParseDiagram } from '@/subject/biology-lab/diagram-parser';
 import { tryParseScienceGraph } from '@/subject/science-graph';
 import { tryParseTreeViz } from '@/subject/tree-viz';
+import { tryParsePresentation, withPresentationModeInstructions, stripPresentationModeInstructions } from '@/subject/presentation';
 import { tryParseField, inferFieldFromText } from '@/subject/physics-lab/field-parser';
 import {
   tryParseMolecule,
@@ -154,21 +155,34 @@ function createDraftConversation(): Conversation {
   };
 }
 
+/** Always open a blank chat on load; keep prior threads for the sidebar. */
+function conversationsWithFreshDraft(existing: Conversation[]): {
+  conversations: Conversation[];
+  draftId: string;
+} {
+  const fresh = createDraftConversation();
+  const rest = existing.filter((c) => !(isDraftId(c.id) && c.messages.length === 0));
+  return { conversations: [fresh, ...rest], draftId: fresh.id };
+}
+
 function messageFromRow(row: MessageRow, subject?: Subject): Message {
   const sources = Array.isArray(row.sources)
     ? (row.sources as ChunkSource[])
     : undefined;
+  const rawContent = row.content;
+  const content =
+    row.role === 'user'
+      ? stripPresentationModeInstructions(rawContent)
+      : rawContent;
   const base: Message = {
     id: row.id,
     role: row.role,
-    content: row.content,
+    content,
     createdAt: Date.parse(row.created_at),
     attachments: row.attachments ?? [],
     sources,
   };
   if (row.role !== 'assistant') return base;
-
-  const content = row.content;
 
   if (tryParseScienceGraph(content)) {
     return { ...base, scienceGraph: true };
@@ -220,6 +234,10 @@ function messageFromRow(row: MessageRow, subject?: Subject): Message {
 
   if (tryParseWebsitePreview(content)) {
     return { ...base, websitePreview: true };
+  }
+
+  if (tryParsePresentation(content)) {
+    return { ...base, presentation: true };
   }
 
   if (tryParseTutorFlashcards(content)) {
@@ -362,8 +380,6 @@ type ChatContextValue = {
   stopGenerating: () => void;
   /** Persist document scope for the active conversation. */
   setRagDocumentScope: (documentIds: string[] | null) => Promise<void>;
-  /** Update assistant website-preview HTML locally (chat cache; not persisted server-side). */
-  updateWebsitePreviewHtml: (messageId: string, htmlDocument: string) => void;
 };
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -616,18 +632,18 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
         return prev.length > 0 ? prev : [createDraftConversation()];
       }
       const prevById = new Map(prev.map((c) => [c.id, c]));
-      const drafts = prev.filter((c) => isDraftId(c.id) && c.messages.length === 0);
+      const emptyDrafts = prev.filter((c) => isDraftId(c.id) && c.messages.length === 0);
+      const drafts = emptyDrafts.length > 0 ? [emptyDrafts[0]] : [createDraftConversation()];
       const serverIds = new Set(rows.map((row) => row.id));
       // Keep conversations created locally that are not on the server yet (first message in flight).
       const pendingLocal = prev.filter(
         (c) => !isDraftId(c.id) && !serverIds.has(c.id) && c.messages.length > 0,
       );
-      const merged = [
+      return [
         ...drafts,
         ...pendingLocal,
         ...rows.map((row) => conversationFromRow(row, prevById.get(row.id))),
       ];
-      return merged.length > 0 ? merged : [createDraftConversation()];
     });
   }, []);
 
@@ -637,27 +653,25 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
 
     if (isOfflineDev) {
       void (async () => {
+        let cached: Conversation[] = [];
         try {
           const raw = await AsyncStorage.getItem(`${CACHE_PREFIX}${userId}`);
-          if (!cancelled && raw) {
+          if (raw) {
             const parsed = JSON.parse(raw) as {
               conversations: Conversation[];
               activeConversationId: string | null;
             };
-            if (Array.isArray(parsed.conversations) && parsed.conversations.length > 0) {
-              setConversations(parsed.conversations);
-              setRequestedConversationId(parsed.activeConversationId);
-              setHydrated(true);
-              return;
+            if (Array.isArray(parsed.conversations)) {
+              cached = parsed.conversations;
             }
           }
         } catch {
           // Fall through to a fresh local conversation.
         }
         if (!cancelled) {
-          const fresh = createDraftConversation();
-          setConversations([fresh]);
-          setRequestedConversationId(fresh.id);
+          const { conversations: next, draftId } = conversationsWithFreshDraft(cached);
+          setConversations(next);
+          setRequestedConversationId(draftId);
           setHydrated(true);
         }
       })();
@@ -667,22 +681,25 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
     }
 
     (async () => {
+      let cached: Conversation[] = [];
       try {
         const raw = await AsyncStorage.getItem(`${CACHE_PREFIX}${userId}`);
-        if (!cancelled && raw) {
+        if (raw) {
           const parsed = JSON.parse(raw) as {
             conversations: Conversation[];
             activeConversationId: string | null;
           };
-          if (Array.isArray(parsed.conversations) && parsed.conversations.length > 0) {
-            setConversations(parsed.conversations);
-            setRequestedConversationId(parsed.activeConversationId);
+          if (Array.isArray(parsed.conversations)) {
+            cached = parsed.conversations;
           }
         }
       } catch {
         // Corrupt cache: server sync below is the source of truth.
       }
       if (!cancelled) {
+        const { conversations: next, draftId } = conversationsWithFreshDraft(cached);
+        setConversations(next);
+        setRequestedConversationId(draftId);
         setHydrated(true);
         await syncFromServer();
       }
@@ -788,6 +805,7 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
       englishMode?: string,
       dzongkhaMode?: string,
       treeVizMode?: string,
+      presentation?: boolean,
       accessToken?: string,
     ) => {
       if (isOfflineDev) {
@@ -850,6 +868,7 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
                 tutorLesson: tutorMode === 'teach' ? true : undefined,
                 tutorSolve: tutorMode === 'solution' || mathMode === 'solve' ? true : undefined,
                 tutorPlan: tutorMode === 'plan' ? true : undefined,
+                presentation: presentation ? true : undefined,
                 createdAt: Date.now(),
               });
             },
@@ -865,6 +884,7 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
           },
           controller.signal,
           mindMap,
+          presentation,
         );
         return;
       }
@@ -897,6 +917,7 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
           englishMode,
           dzongkhaMode,
           treeVizMode,
+          presentation,
           accessToken,
           onDelta: (fullText) => {
             if (!assistantCreated) {
@@ -943,6 +964,7 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
                 tutorLesson: tutorMode === 'teach' ? true : undefined,
                 tutorSolve: tutorMode === 'solution' || mathMode === 'solve' ? true : undefined,
                 tutorPlan: tutorMode === 'plan' ? true : undefined,
+                presentation: presentation ? true : undefined,
                 createdAt: Date.now(),
               });
             } else {
@@ -1191,6 +1213,7 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
               payload.englishMode,
               payload.dzongkhaMode,
               payload.treeVizMode,
+              payload.presentation,
             );
           }
         } finally {
@@ -1305,7 +1328,7 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
         const row = await messagesService.insertUserMessage(
           realId,
           sendUserId,
-          trimmed,
+          payload.presentation ? withPresentationModeInstructions(trimmed) : trimmed,
           uploadedAttachments,
         );
         reconcileMessageId(realId, tempUserId, row.id);
@@ -1485,7 +1508,8 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
               payload.historyMode ||
               payload.englishMode ||
               (payload.dzongkhaMode && payload.dzongkhaMode !== 'library') ||
-              payload.treeVizMode
+              payload.treeVizMode ||
+              payload.presentation
               ? false
               : payload.mindMap,
             payload.codingMode,
@@ -1493,14 +1517,17 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
             payload.tutorLevel,
             payload.learningLevel,
             payload.mathMode,
-            payload.biologyMode,
-            payload.physicsMode,
-            payload.chemistryMode,
-            payload.geographyMode,
-            payload.historyMode,
-            payload.englishMode,
-            payload.dzongkhaMode,
+            // When presentation mode is on, suppress lab generate modes so the
+            // Edge Function produces slide JSON instead of subject diagrams.
+            payload.presentation ? undefined : payload.biologyMode,
+            payload.presentation ? undefined : payload.physicsMode,
+            payload.presentation ? undefined : payload.chemistryMode,
+            payload.presentation ? undefined : payload.geographyMode,
+            payload.presentation ? undefined : payload.historyMode,
+            payload.presentation ? undefined : payload.englishMode,
+            payload.presentation ? undefined : payload.dzongkhaMode,
             payload.treeVizMode,
+            payload.presentation,
             streamToken,
           );
         }
@@ -1573,6 +1600,7 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
             lastEnglishModeByConversationRef.current[conversationId],
             lastDzongkhaModeByConversationRef.current[conversationId],
             lastTreeVizModeByConversationRef.current[conversationId],
+            undefined, // presentation — regenerate never re-triggers slide mode
             accessToken,
           );
         }
@@ -1585,24 +1613,6 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
       }
     })();
   }, [userId, isOfflineDev, activeConversationId, removeMessage, runGeneration, runRagGeneration]);
-
-  const updateWebsitePreviewHtml = useCallback(
-    (messageId: string, htmlDocument: string) => {
-      const conversationId = activeConversationId;
-      if (!conversationId) return;
-      updateConversation(conversationId, (conversation) => ({
-        ...conversation,
-        messages: conversation.messages.map((message) => {
-          if (message.id !== messageId || !message.websitePreview) return message;
-          const nextContent = replaceHtmlInPreviewContent(message.content, htmlDocument);
-          if (!nextContent) return message;
-          return { ...message, content: nextContent };
-        }),
-        updatedAt: Date.now(),
-      }));
-    },
-    [activeConversationId, updateConversation],
-  );
 
   // ----------------------------------------------------------------------
   // Conversation management
@@ -1689,7 +1699,6 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
       regenerateLastReply,
       stopGenerating,
       setRagDocumentScope,
-      updateWebsitePreviewHtml,
     }),
     [
       conversations,
@@ -1707,7 +1716,6 @@ function ChatProviderInner({ user, children }: { user: User | null; children: Re
       regenerateLastReply,
       stopGenerating,
       setRagDocumentScope,
-      updateWebsitePreviewHtml,
     ],
   );
 

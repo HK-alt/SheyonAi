@@ -13,7 +13,9 @@ import {
 
 function RootNavigator() {
   const { resolvedScheme } = useThemePreference();
-  const { session, isLoading } = useAuthContext();
+  const { session, isLoading, userRole } = useAuthContext();
+
+  const isAdmin = !!session && userRole === 'admin';
 
   return (
     <ThemeProvider value={resolvedScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -22,6 +24,11 @@ function RootNavigator() {
           so signed-in users never flash the sign-in screen. */}
       {!isLoading && (
         <Stack screenOptions={{ headerShown: false }}>
+          {/* Admin routes — only accessible to admin role */}
+          <Stack.Protected guard={isAdmin}>
+            <Stack.Screen name="admin" />
+          </Stack.Protected>
+          {/* Regular user routes */}
           <Stack.Protected guard={!!session}>
             <Stack.Screen name="index" />
             <Stack.Screen name="subject/[id]" />

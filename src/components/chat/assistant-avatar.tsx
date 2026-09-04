@@ -1,6 +1,6 @@
+import { Image } from 'expo-image';
 import { Platform, StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 
 type AssistantAvatarProps = {
@@ -10,10 +10,11 @@ type AssistantAvatarProps = {
 export function AssistantAvatar({ size = 32 }: AssistantAvatarProps) {
   const theme = useTheme();
   const isWeb = Platform.OS === 'web';
-  const fontSize = Math.max(11, Math.round(size * 0.42));
+  const glyph = Math.round(size * 0.58);
 
   return (
     <View
+      accessibilityLabel="Sheyon Ai"
       style={[
         styles.avatar,
         {
@@ -25,11 +26,13 @@ export function AssistantAvatar({ size = 32 }: AssistantAvatarProps) {
           borderWidth: isWeb ? 0 : 1,
         },
       ]}>
-      <ThemedText
-        type="smallBold"
-        style={[styles.label, { color: isWeb ? '#ffffff' : theme.accent, fontSize, lineHeight: fontSize + 3 }]}>
-        E
-      </ThemedText>
+      <Image
+        accessibilityIgnoresInvertColors
+        contentFit="contain"
+        source={require('@/assets/images/splash-icon.png')}
+        style={{ width: glyph, height: glyph }}
+        tintColor={isWeb ? '#ffffff' : theme.accent}
+      />
     </View>
   );
 }
@@ -38,9 +41,5 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  label: {
-    fontSize: 13,
-    lineHeight: 16,
   },
 });

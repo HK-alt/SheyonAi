@@ -180,6 +180,7 @@ export function ChatComposer({
   const [mindMapActive, setMindMapActive] = useState(false);
   const [ragActive, setRagActive] = useState(false);
   const [treeVizMode, setTreeVizMode] = useState<TreeVizMode | null>(null);
+  const [presentationActive, setPresentationActive] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [documentsSheetOpen, setDocumentsSheetOpen] = useState(false);
   const [codingMode, setCodingMode] = useState<CodingMode | null>(null);
@@ -312,6 +313,7 @@ export function ChatComposer({
         mindMap:
           effectiveRagActive ||
           !!treeVizMode ||
+          presentationActive ||
           isDzongkhaWorkspace ||
           isCodingSubject ||
           isPersonalWorkspace ||
@@ -339,7 +341,8 @@ export function ChatComposer({
         historyMode: isHistoryWorkspace ? historyMode : undefined,
         englishMode: isEnglishWorkspace ? englishMode : undefined,
         dzongkhaMode: isDzongkhaWorkspace ? dzongkhaMode : undefined,
-        treeVizMode: treeVizMode ?? undefined,
+        treeVizMode: presentationActive ? undefined : (treeVizMode ?? undefined),
+        presentation: presentationActive || undefined,
       });
       if (homeworkIntent) setHomeworkIntent(null);
     },
@@ -359,6 +362,7 @@ export function ChatComposer({
       mathDisplayMode,
       mindMapActive,
       treeVizMode,
+      presentationActive,
       effectiveRagActive,
       homeworkIntent,
       isCodingWorkspace,
@@ -446,7 +450,8 @@ export function ChatComposer({
     setTutorMode(HOMEWORK_INTENT_META[homeworkIntent].tutorMode);
   }, [homeworkIntent, isPersonalWorkspace]);
 
-  // Coding and Personal Tutor never use mind-map mode; clear stale chip state.
+  // Coding and Personal Tutor never use mind-map or tree-viz mode; clear stale chip state.
+  // Presentation mode is kept active across workspaces (it overrides lab modes).
   useEffect(() => {
     if (
       isCodingWorkspace ||
@@ -533,6 +538,7 @@ export function ChatComposer({
       if (next) {
         setRagActive(false);
         setTreeVizMode(null);
+        setPresentationActive(false);
       }
       return next;
     });
@@ -544,6 +550,7 @@ export function ChatComposer({
       if (next) {
         setMindMapActive(false);
         setTreeVizMode(null);
+        setPresentationActive(false);
         setDocumentsSheetOpen(true);
       }
       return next;
@@ -556,6 +563,19 @@ export function ChatComposer({
       if (next) {
         setMindMapActive(false);
         setRagActive(false);
+        setPresentationActive(false);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleTogglePresentation = useCallback(() => {
+    setPresentationActive((prev) => {
+      const next = !prev;
+      if (next) {
+        setMindMapActive(false);
+        setRagActive(false);
+        setTreeVizMode(null);
       }
       return next;
     });
@@ -621,6 +641,9 @@ export function ChatComposer({
     if (mindMapActive) {
       return 'Describe a topic for your mind map...';
     }
+    if (presentationActive) {
+      return 'Topic, exam unit, or talk title for a slide deck…';
+    }
     if (treeVizMode) {
       return TREE_VIZ_MODE_PLACEHOLDERS[treeVizMode];
     }
@@ -651,6 +674,7 @@ export function ChatComposer({
     equationOpen,
     mindMapActive,
     treeVizMode,
+    presentationActive,
     ragActive,
     state.activeSubject,
     tutorMode,
@@ -687,8 +711,10 @@ export function ChatComposer({
   const isWebShell = Platform.OS === 'web';
   const useCard = isWorkspace || isWebShell;
   const subjectAccent = getSubjectAccentColor(subject) ?? theme.accent;
-  const showHomeTools = !isWorkspace;
-  const toolsChipActive = ragActive || !!treeVizMode;
+  // Tools sheet is available on home AND in subject workspaces (for Slides).
+  // Tree viz section is hidden in workspaces (it conflicts with lab HTML modes).
+  const showHomeTools = true;
+  const toolsChipActive = ragActive || !!treeVizMode || presentationActive;
 
   const composerInput = useCard ? (
     <WorkspaceComposer
@@ -847,6 +873,16 @@ export function ChatComposer({
             disabled={modeDisabled}
           />
         )}
+        {!isWorkspace && (
+          <ComposerChip
+            label="Slides"
+            icon={{ ios: 'play.rectangle.fill', android: 'slideshow', web: 'slideshow' }}
+            iconColor="#7C3AED"
+            active={presentationActive}
+            disabled={modeDisabled}
+            onPress={handleTogglePresentation}
+          />
+        )}
         {showHomeTools && (
           <ComposerChip
             label="Tools"
@@ -889,6 +925,9 @@ export function ChatComposer({
             onToggleDocuments={handleDocumentsToggle}
             treeVizMode={treeVizMode}
             onSelectTreeViz={handleSelectTreeViz}
+            presentationActive={presentationActive}
+            onTogglePresentation={handleTogglePresentation}
+            showTreeViz={!isWorkspace}
             onOpenResearch={onOpenResearch}
             disabled={modeDisabled}
           />

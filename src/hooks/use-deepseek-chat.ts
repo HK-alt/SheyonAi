@@ -50,6 +50,8 @@ type StreamReplyOptions = {
   dzongkhaMode?: string;
   /** Home Tools D3 tree visualization layout. */
   treeVizMode?: string;
+  /** When true, generates structured slide JSON for a .pptx presentation. */
+  presentation?: boolean;
   /** Use the same token as the send flow; falls back to getSession() when omitted. */
   accessToken?: string;
   /** Called for every received token with the accumulated text so far. */
@@ -86,6 +88,7 @@ async function openStream(
   englishMode: string | undefined,
   dzongkhaMode: string | undefined,
   treeVizMode: string | undefined,
+  presentation: boolean | undefined,
   accessToken: string,
   signal: AbortSignal,
 ) {
@@ -113,6 +116,7 @@ async function openStream(
           englishMode,
           dzongkhaMode,
           treeVizMode,
+          presentation: presentation === true ? true : undefined,
         }),
         signal,
       });
@@ -162,6 +166,7 @@ export function useDeepSeekChat() {
       englishMode,
       dzongkhaMode,
       treeVizMode,
+      presentation,
       accessToken,
       onDelta,
     }: StreamReplyOptions): Promise<StreamReplyResult> => {
@@ -196,6 +201,7 @@ export function useDeepSeekChat() {
           englishMode,
           dzongkhaMode,
           treeVizMode,
+          presentation,
           token,
           controller.signal,
         );

@@ -1,6 +1,12 @@
 import type { PhysicsMode } from '@/types/chat';
 import type { SubjectPrompts } from '@/subject/subjects/types';
 import { SCIENCE_GRAPH_JSON_CONTRACT } from '@/subject/science-graph/graph-prompt';
+import {
+  PHYSICS_DIAGRAM_ADDENDUM,
+  SUBJECT_DIAGRAM_ACCURACY_RULES,
+  SUBJECT_DIAGRAM_DESIGN_SYSTEM,
+  SUBJECT_DIAGRAM_HTML_CONTRACT,
+} from '@/subject/diagram-prompt';
 
 /**
  * Physics generate modes — keep in sync with PHYSICS_MODE_PROMPTS in
@@ -12,12 +18,21 @@ Prefer projectile x–t / y–t, v–t, I–V curves, or energy vs time. Use SI 
 Always include annotations + insights. If unclear, use multiLine for projectile x–t and y–t (≥48 points each) or a quadratic/sine model with a slider.
 NEVER use modelId, sceneId, or moleculeId in Graph mode — always use chartType.
 ` + SCIENCE_GRAPH_JSON_CONTRACT,
-  diagram: `The user selected Diagram mode. GENERATE a clear physics diagram now. Do not embed or link PhET or external libraries.
-Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
-CRITICAL: no external scripts or CDNs. All CSS and JS inline.
-Prefer SVG for free-body diagrams, circuits, ray optics, or energy bar charts. Label arrows, forces, currents, or rays clearly.
-Caption: "Generated diagram — teaching model."
-If the topic is unclear, draw a free-body diagram of a block on an incline. Keep JS under 180 lines. Keep all prose outside the fence.`,
+  diagram: `The user selected Diagram mode. GENERATE a publication-quality physics diagram now. Do not embed or link PhET or external libraries.
+` +
+    SUBJECT_DIAGRAM_HTML_CONTRACT +
+    `
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    PHYSICS_DIAGRAM_ADDENDUM,
   sim: `The user selected Lab (Simulate) mode. GENERATE an interactive physics simulation now. Do not embed or link PhET, LabXchange, or any other library.
 Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
 CRITICAL: no external scripts or CDNs. All CSS and JS inline.
@@ -42,7 +57,7 @@ export const PHYSICS_MODE_PLACEHOLDERS: Record<PhysicsMode, string> = {
 
 export const PHYSICS_EMPTY_STATE_HINTS: Record<PhysicsMode, string> = {
   graph: 'Describe a relationship — a generated teaching graph appears here.',
-  diagram: 'Describe a setup — a labeled diagram appears here.',
+  diagram: 'Name the setup and forces to label — e.g. free-body on incline, circuit, ray optics. Use Field 3D for orbits and fields.',
   sim: 'Describe a process — a generated interactive lab appears here.',
   field: 'Describe a field or orbit — a 3D teaching scene appears here.',
 };

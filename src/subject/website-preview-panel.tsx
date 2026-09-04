@@ -11,14 +11,12 @@ import { WebsitePreviewViewer } from '@/subject/website-preview-viewer';
 type WebsitePreviewPanelProps = {
   preview: ParsedWebsitePreview;
   onDismiss: () => void;
-  onHtmlApplied?: (html: string) => void;
 };
 
 /** Inline expanded website preview between chat header and composer. */
 export function WebsitePreviewPanel({
   preview,
   onDismiss,
-  onHtmlApplied,
 }: WebsitePreviewPanelProps) {
   const theme = useTheme();
   const [immersiveOpen, setImmersiveOpen] = useState(false);
@@ -51,7 +49,6 @@ export function WebsitePreviewPanel({
         <WebsitePreviewViewer
           htmlDocument={preview.htmlDocument}
           variant="fullscreen"
-          onHtmlApplied={onHtmlApplied}
         />
       </View>
 
@@ -59,7 +56,6 @@ export function WebsitePreviewPanel({
         visible={immersiveOpen}
         preview={preview}
         onClose={() => setImmersiveOpen(false)}
-        onHtmlApplied={onHtmlApplied}
       />
     </View>
   );

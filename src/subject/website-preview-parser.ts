@@ -1,3 +1,5 @@
+import { buildDiagramDocumentShell } from './diagram-document-shell';
+
 export type ParsedWebsitePreview = {
   introText: string;
   htmlDocument: string;
@@ -45,28 +47,11 @@ function isPreviewHtmlFence(fence: FenceMatch): boolean {
 }
 
 function wrapSvgInDocument(svg: string): string {
-  const trimmed = svg.trim();
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Diagram</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: #f8fafc; color: #0f172a; font-family: system-ui, sans-serif; }
-    body { display: flex; align-items: center; justify-content: center; padding: 16px; }
-    svg { max-width: 100%; height: auto; display: block; }
-    .caption { margin-top: 12px; font-size: 12px; color: #64748b; text-align: center; }
-  </style>
-</head>
-<body>
-  <div>
-    ${trimmed}
-    <p class="caption">Generated diagram — teaching model.</p>
-  </div>
-</body>
-</html>`;
+  return buildDiagramDocumentShell({
+    title: '',
+    bodyHtml: svg.trim(),
+    caption: 'Generated diagram — teaching model.',
+  });
 }
 
 function isJsxLang(lang: string): boolean {

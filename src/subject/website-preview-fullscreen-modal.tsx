@@ -11,7 +11,6 @@ type WebsitePreviewFullscreenModalProps = {
   visible: boolean;
   preview: ParsedWebsitePreview;
   onClose: () => void;
-  onHtmlApplied?: (html: string) => void;
 };
 
 /** Device-immersive preview overlay — hides chat chrome for an edge-to-edge experience. */
@@ -19,7 +18,6 @@ export function WebsitePreviewFullscreenModal({
   visible,
   preview,
   onClose,
-  onHtmlApplied,
 }: WebsitePreviewFullscreenModalProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -53,7 +51,6 @@ export function WebsitePreviewFullscreenModal({
           <WebsitePreviewViewer
             htmlDocument={preview.htmlDocument}
             variant="immersive"
-            onHtmlApplied={onHtmlApplied}
           />
         </View>
       </View>

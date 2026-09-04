@@ -1,5 +1,11 @@
 import type { EnglishMode } from '@/types/chat';
 import type { SubjectPrompts } from '@/subject/subjects/types';
+import {
+  ENGLISH_DIAGRAM_ADDENDUM,
+  SUBJECT_DIAGRAM_ACCURACY_RULES,
+  SUBJECT_DIAGRAM_DESIGN_SYSTEM,
+  SUBJECT_DIAGRAM_HTML_CONTRACT,
+} from '@/subject/diagram-prompt';
 
 /**
  * English generate modes - keep in sync with ENGLISH_MODE_PROMPTS in
@@ -14,12 +20,21 @@ Prefer: argumentative essay, literary analysis paragraph, narrative opening, PEE
 Caption: "Generated writing workshop - teaching model; revise in your own voice."
 If the topic is unclear, build a PEEL paragraph workshop on "Should schools start later?" Keep JS under 220 lines. Keep all prose outside the fence.`,
 
-  diagram: `The user selected Diagram mode. GENERATE a clear English / literature diagram now. Do not embed or link external libraries.
-Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
-CRITICAL: no external scripts or CDNs. All CSS and JS inline.
-Prefer SVG for plot arcs (exposition→climax→resolution), character relationship webs, rhetorical triangle (ethos/pathos/logos), Freytag pyramid, theme webs, or sentence structure trees. Label parts clearly.
-Caption: "Generated diagram - teaching model."
-If the topic is unclear, diagram Freytag's pyramid for a short story with labeled stages. Keep JS under 180 lines. Keep all prose outside the fence.`,
+  diagram: `The user selected Diagram mode. GENERATE a publication-quality English / literature diagram now. Do not embed or link external libraries.
+` +
+    SUBJECT_DIAGRAM_HTML_CONTRACT +
+    `
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    ENGLISH_DIAGRAM_ADDENDUM,
 
   sim: `The user selected Lab (Practice) mode. GENERATE an interactive English practice lab now. Do not embed or link external libraries.
 Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
@@ -88,7 +103,7 @@ export const ENGLISH_MODE_PLACEHOLDERS: Record<EnglishMode, string> = {
 
 export const ENGLISH_EMPTY_STATE_HINTS: Record<EnglishMode, string> = {
   essay: 'Describe a writing goal — an interactive workshop appears here.',
-  diagram: 'Describe a text structure — a labeled English diagram appears here.',
+  diagram: 'Name the text structure and parts to label — e.g. Freytag pyramid stages, rhetorical triangle.',
   sim: 'Describe a skill to practice — an interactive English lab appears here.',
   map: 'Name a literary setting — a Leaflet map of real places loads here.',
 };

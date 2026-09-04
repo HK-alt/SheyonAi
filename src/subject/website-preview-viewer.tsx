@@ -13,22 +13,15 @@ import { WebView, type WebViewNavigation } from 'react-native-webview';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import {
-  copyHtmlToClipboard,
-  WebsitePreviewEditor,
-} from '@/subject/website-preview-editor';
 
 export type WebsitePreviewVariant = 'inline' | 'fullscreen' | 'immersive';
 
 type WebsitePreviewViewerProps = {
   htmlDocument: string;
   variant?: WebsitePreviewVariant;
-  onHtmlApplied?: (html: string) => void;
   /** Opens device-immersive modal (fullscreen panel only). */
   onEnterImmersive?: () => void;
 };
-
-type ViewMode = 'preview' | 'code';
 
 const INLINE_HEIGHT = Platform.OS === 'web' ? 420 : 380;
 
@@ -237,60 +230,19 @@ function ToolbarButton({
 export function WebsitePreviewViewer({
   htmlDocument,
   variant = 'inline',
-  onHtmlApplied,
   onEnterImmersive,
 }: WebsitePreviewViewerProps) {
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
-  const [viewMode, setViewMode] = useState<ViewMode>('preview');
-  const [previewHtml, setPreviewHtml] = useState(htmlDocument);
-  const [draftHtml, setDraftHtml] = useState(htmlDocument);
-  const [copied, setCopied] = useState(false);
 
   const isInline = variant === 'inline';
-  const showingCode = viewMode === 'code';
-  const dirty = draftHtml !== previewHtml;
-  const displayHtml = ensurePreviewScrollableHtml(previewHtml);
+  const displayHtml = ensurePreviewScrollableHtml(htmlDocument);
 
   useEffect(() => {
-    setPreviewHtml(htmlDocument);
-    setDraftHtml(htmlDocument);
-    setViewMode('preview');
     setReloadKey((k) => k + 1);
+    setLoading(true);
   }, [htmlDocument]);
-
-  const handleApply = useCallback(() => {
-    setPreviewHtml(draftHtml);
-    setReloadKey((k) => k + 1);
-    setViewMode('preview');
-    setLoading(true);
-    onHtmlApplied?.(draftHtml);
-  }, [draftHtml, onHtmlApplied]);
-
-  const handleReset = useCallback(() => {
-    setDraftHtml(htmlDocument);
-    setPreviewHtml(htmlDocument);
-    setReloadKey((k) => k + 1);
-    setLoading(true);
-    onHtmlApplied?.(htmlDocument);
-  }, [htmlDocument, onHtmlApplied]);
-
-  const handleCopy = useCallback(async () => {
-    await copyHtmlToClipboard(draftHtml);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  }, [draftHtml]);
-
-  const handleShowPreview = useCallback(() => {
-    if (dirty) {
-      setPreviewHtml(draftHtml);
-      setReloadKey((k) => k + 1);
-      setLoading(true);
-      onHtmlApplied?.(draftHtml);
-    }
-    setViewMode('preview');
-  }, [dirty, draftHtml, onHtmlApplied]);
 
   const containerStyle = isInline
     ? [
@@ -303,74 +255,18 @@ export function WebsitePreviewViewer({
       ]
     : [styles.containerFullscreen, { backgroundColor: theme.background }];
 
-  const previewContent = showingCode ? (
-    <WebsitePreviewEditor value={draftHtml} onChange={setDraftHtml} dirty={dirty} />
-  ) : (
-    <View style={[styles.previewFrame, { backgroundColor: theme.chatSurface }]}>
-      <View style={styles.previewStage}>
-        <View style={styles.previewViewport}>
-          {loading && (
-            <View style={styles.overlay}>
-              <ThemedText type="small" themeColor="textSecondary">
-                Loading preview…
-              </ThemedText>
-            </View>
-          )}
-          <PreviewSurface
-            key={`${reloadKey}-${displayHtml.length}`}
-            html={displayHtml}
-            onLoadStart={() => setLoading(true)}
-            onLoadEnd={() => setLoading(false)}
-            style={styles.webview}
-          />
-        </View>
-      </View>
-    </View>
-  );
-
   return (
     <View style={containerStyle}>
-      <View
-        style={[
-          styles.toolbar,
-          { backgroundColor: theme.backgroundElement, borderBottomColor: theme.composerBorder },
-        ]}>
-        {showingCode ? (
-          <ThemedText type="small" themeColor="textSecondary" style={styles.toolbarLabel}>
-            Edit HTML
-          </ThemedText>
-        ) : null}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.toolbarActions}>
-          {showingCode ? (
-            <>
-              <ToolbarButton
-                label="Apply"
-                active={dirty}
-                onPress={handleApply}
-                accent={theme.accent}
-                muted={theme.textSecondary}
-                border={theme.composerBorder}
-              />
-              <ToolbarButton
-                label="Reset"
-                onPress={handleReset}
-                accent={theme.accent}
-                muted={theme.textSecondary}
-                border={theme.composerBorder}
-              />
-              <ToolbarButton
-                label={copied ? 'Copied' : 'Copy'}
-                onPress={() => void handleCopy()}
-                accent={theme.accent}
-                muted={theme.textSecondary}
-                border={theme.composerBorder}
-              />
-            </>
-          ) : null}
-          {onEnterImmersive && !showingCode ? (
+      {onEnterImmersive ? (
+        <View
+          style={[
+            styles.toolbar,
+            { backgroundColor: theme.backgroundElement, borderBottomColor: theme.composerBorder },
+          ]}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.toolbarActions}>
             <ToolbarButton
               label="Fullscreen"
               onPress={onEnterImmersive}
@@ -378,19 +274,30 @@ export function WebsitePreviewViewer({
               muted={theme.textSecondary}
               border={theme.composerBorder}
             />
-          ) : null}
-          <ToolbarButton
-            label={showingCode ? 'Preview' : 'Edit'}
-            active={showingCode}
-            onPress={() => (showingCode ? handleShowPreview() : setViewMode('code'))}
-            accent={theme.accent}
-            muted={theme.textSecondary}
-            border={theme.composerBorder}
-          />
-        </ScrollView>
-      </View>
+          </ScrollView>
+        </View>
+      ) : null}
 
-      {previewContent}
+      <View style={[styles.previewFrame, { backgroundColor: theme.chatSurface }]}>
+        <View style={styles.previewStage}>
+          <View style={styles.previewViewport}>
+            {loading && (
+              <View style={styles.overlay}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Loading preview…
+                </ThemedText>
+              </View>
+            )}
+            <PreviewSurface
+              key={`${reloadKey}-${displayHtml.length}`}
+              html={displayHtml}
+              onLoadStart={() => setLoading(true)}
+              onLoadEnd={() => setLoading(false)}
+              style={styles.webview}
+            />
+          </View>
+        </View>
+      </View>
     </View>
   );
 }
@@ -416,10 +323,6 @@ const styles = StyleSheet.create({
     paddingLeft: Spacing.three,
     paddingVertical: Spacing.one + Spacing.half,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  toolbarLabel: {
-    flexShrink: 0,
-    marginRight: 'auto',
   },
   toolbarActions: {
     flexDirection: 'row',

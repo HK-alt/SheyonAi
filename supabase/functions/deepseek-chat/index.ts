@@ -306,6 +306,126 @@ const SCIENCE_GRAPH_SCHEMA_EXAMPLE_LINE =
 const SCIENCE_GRAPH_SCHEMA_EXAMPLE_TIMELINE =
   "{\"chartType\":\"timeline\",\"title\":\"World War I major turning points\",\"goal\":\"Place key events on a teaching timeline across theaters\",\"caption\":\"Generated timeline — teaching model; dates are approximate teaching markers.\",\"eras\":[{\"id\":\"early\",\"label\":\"Mobilization\",\"start\":1914,\"end\":1915,\"color\":\"#e0f2fe\"},{\"id\":\"attrition\",\"label\":\"Attrition\",\"start\":1916,\"end\":1917,\"color\":\"#fef3c7\"},{\"id\":\"endgame\",\"label\":\"Endgame\",\"start\":1918,\"end\":1918,\"color\":\"#dcfce7\"}],\"events\":[{\"id\":\"sarajevo\",\"label\":\"Assassination at Sarajevo\",\"start\":1914,\"detail\":\"Trigger crisis that opened the July diplomatic spiral.\",\"category\":\"Origins\",\"importance\":5},{\"id\":\"marne\",\"label\":\"First Marne\",\"start\":1914,\"detail\":\"Stopped the German advance; trench stalemate begins.\",\"category\":\"Western Front\",\"importance\":4},{\"id\":\"gallipoli\",\"label\":\"Gallipoli campaign\",\"start\":1915,\"end\":1916,\"detail\":\"Failed Allied attempt to open the Dardanelles.\",\"category\":\"Other theaters\",\"importance\":3},{\"id\":\"somme\",\"label\":\"Battle of the Somme\",\"start\":1916,\"end\":1916,\"detail\":\"Attrition offensive with huge casualties for limited gains.\",\"category\":\"Western Front\",\"importance\":5},{\"id\":\"us-entry\",\"label\":\"US enters the war\",\"start\":1917,\"detail\":\"Fresh manpower and industry tip the balance toward the Allies.\",\"category\":\"Diplomacy\",\"importance\":5},{\"id\":\"revolution\",\"label\":\"Russian revolutions\",\"start\":1917,\"detail\":\"Political collapse that led Russia toward exit.\",\"category\":\"Eastern Front\",\"importance\":4},{\"id\":\"kaiserschlacht\",\"label\":\"Spring Offensive\",\"start\":1918,\"detail\":\"Last major German push before Allied counterattacks.\",\"category\":\"Western Front\",\"importance\":4},{\"id\":\"armistice\",\"label\":\"Armistice\",\"start\":1918,\"detail\":\"Fighting ends 11 November; peace talks follow.\",\"category\":\"End\",\"importance\":5}],\"insights\":[\"Categories separate theaters so you can filter one storyline.\",\"Importance highlights turning points vs supporting events.\",\"Eras show phases: open war → attrition → endgame.\"]}";
 
+// Keep in sync with SUBJECT_DIAGRAM_DESIGN_SYSTEM in src/subject/diagram-prompt.ts
+const SUBJECT_DIAGRAM_HTML_CONTRACT = `Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
+CRITICAL: fence language MUST be html. All SVG inside <body>. No external scripts, CDNs, or images — all CSS and JS inline.
+Footer caption exactly: "Generated teaching figure — simplified model."
+Keep JS under 180 lines. Keep all prose outside the fence.`;
+
+const SUBJECT_DIAGRAM_DESIGN_SYSTEM = `DIAGRAM DESIGN SYSTEM (publication-quality textbook figure):
+- Appearance: modern AP-level / university lecture figure — clean, precise, calm. Not a cartoon, rough sketch, or toy UI.
+- Page structure: header (title 22–26px semibold + one-line learning goal 14px muted) → white card containing the main SVG figure → optional labeled key/legend sidebar → footer caption.
+- Typography: system-ui, -apple-system, Segoe UI, Roboto, sans-serif. Title 22–26px font-weight 650 letter-spacing -0.02em; section/panel headings 13–14px bold uppercase; body labels 11–12px; muted color #64748b.
+- Palette: page bg #f1f5f9; card #ffffff; ink #0f172a; muted #64748b; accent teal #0f766e; secondary blue #2563eb; warm amber #b45309; border #e2e8f0; card border-radius 16px; card box-shadow 0 1px 3px rgba(15,23,42,.08).
+- SVG conventions: use a viewBox (e.g. "0 0 900 520"); define <marker> arrowheads; use thin leader lines (stroke #94a3b8, stroke-width 1.2) from structures to text labels; never overlap label text; SVG label font-size 11–12px, fill #0f172a; panel title text 13px bold uppercase.
+- Layout: use a multi-panel layout (macro overview left, process/detail right) when the topic has two levels of scale; min-height ~560px; static SVG preferred over JS animation for pure diagrams.
+- Accessibility: ≥4.5:1 contrast ratio for all text on their background fill; no emoji; no watermarks; no photorealistic imagery.`;
+
+const SUBJECT_DIAGRAM_ACCURACY_RULES = `ACCURACY RULES (verify before output — accuracy over decoration):
+- Use standard nomenclature: correct spelling, Latin anatomical terms, SI units, IUPAC symbols, accepted historical dates.
+- Every arrow must show the correct direction of flow (blood, nerve signal, energy, causation, material, process stage order).
+- Anatomical left/right = patient's left/right; state the view (e.g. "anterior view", "coronal section", "sagittal section").
+- Do not invent structures, pathways, or labels you are uncertain about — omit or mark approximate regions with a dashed outline and a short note.
+- Spatial relationships and proportions must match standard textbook references even in stylized flat SVG (relative size, adjacency, layer order).
+- Include a "Key structures" sidebar (4–8 items) when the figure has ≥4 labels — each with an accurate one-line teaching note.
+- Prefer verified app paths over invented geometry: biology catalog JSON (PATH A), Anatomy/Molecule/Field 3D modes, or Map mode for real places.`;
+
+const BIOLOGY_DIAGRAM_CATALOG_PRIORITY = `CATALOG PRIORITY (most accurate path): Before generating HTML, check if the topic matches a catalog figure — catalog SVG is pre-verified and always preferred over generated HTML.
+kidney = whole kidney organ; nephron = tubule/glomerulus pathway; animal_cell = organelles; mitosis = cell-division stages; heart_flow = chambers + major vessels; food_web = ecosystem trophic levels; photosynthesis = chloroplast + light/dark reactions; neuron_synapse = neuron + synapse; digestive_tract = GI organs; respiratory_system = airways + alveoli.
+If the user names specific structures to label, include them in labels[] with accurate teaching details.`;
+
+const BIOLOGY_DIAGRAM_ADDENDUM = `Subject focus — biology / medical: prefer multi-panel layout (organism/organ overview left; organelle/process detail right); represent molecules as colored labeled circles (CO₂, H₂O, O₂, glucose, ATP) with directional arrows; use biology greens (#166534 dark, #16a34a mid) for living structures and teal (#0f766e) arrows for flow. Distinguish artery (red toward organ) vs vein (blue away); oxygenated vs deoxygenated blood where relevant. Footer caption for biology/medical figures exactly: "Generated teaching figure — simplified model, not a clinical illustration."`;
+
+const PHYSICS_DIAGRAM_ADDENDUM = `Subject focus — physics: prefer free-body diagrams (labeled force vectors with correct origin and direction, dashed auxiliary construction lines, SI units on all values), circuit schematics (standard IEC/IEEE symbols, labeled nodes, correct series/parallel topology), or ray optics diagrams (principal axis, focal points, image arrows with correct real/virtual). Force vectors must originate from the correct body surface. Default fallback: free-body diagram of a block on an incline with weight, normal force, and friction vectors.`;
+
+const CHEMISTRY_DIAGRAM_ADDENDUM = `Subject focus — chemistry: prefer Lewis dot structures (correct electron pairs, octet rule, formal charges shown), curved-arrow reaction mechanisms (electrons move correctly), or labeled cross-section lab apparatus. Bond angles and hybridization must be chemically correct (e.g. H₂O bent ~104.5°, CH₄ tetrahedral). PERIODIC TABLE RULE: never build a full 118-element interactive app — if the topic is periodic trends draw ONLY periods 1–3 (H through Ar) as a static SVG/CSS grid with every cell filled (number + symbol + name), or draw a labeled trend-arrow diagram across those rows. No search UI, no 118-element arrays. Default fallback: Lewis structure of water with lone pairs.`;
+
+const GEOGRAPHY_DIAGRAM_ADDENDUM = `Subject focus — geography: prefer process cycle diagrams (water cycle, rock cycle, carbon cycle) with correctly ordered stages, cross-section landforms (accurate plate boundary types: constructive/destructive/conservative), or urban/rural land-use concentric ring diagrams. Use directional arrows for flows; earth-tone accents (land green #166534, water blue #1e40af, rock brown #92400e). For real place boundaries use Map mode — do not invent coastlines in Diagram mode. Default fallback: the water cycle with evaporation, condensation, precipitation, and surface runoff.`;
+
+const HISTORY_DIAGRAM_ADDENDUM = `Subject focus — history: prefer cause-and-effect chain diagrams (rounded-rect nodes with verified dates, weighted directional arrows for significance), social/feudal pyramid diagrams (correct hierarchy order), alliance web graphs (actors as circles, relations as labeled edges), or colonial trade triangle diagrams. Dates must be historically accepted approximations — mark uncertain dates with "c." prefix. Label actors, dates, and historical significance clearly. Default fallback: the long-term and short-term causes of World War I with labeled arrows.`;
+
+const ENGLISH_DIAGRAM_ADDENDUM = `Subject focus — English / literature: prefer Freytag pyramid diagrams (five labeled stage panels with example text), rhetorical triangle (ethos/pathos/logos), character relationship webs (labeled directed edges), or plot arc stage maps. Use soft tonal fills for stage panels (violet-50 #f5f3ff, sky-50 #f0f9ff, emerald-50 #ecfdf5). Default fallback: Freytag's dramatic pyramid with five labeled stages.`;
+
+const DZONGKHA_DIAGRAM_ADDENDUM = `Subject focus — Dzongkha grammar: use S-O-V node diagrams only; each node is a rounded rect (stroke #0f766e, fill #f0fdf4, border-radius 8px) with the Uchen token centred (16px) and romanization as a sub-label (11px, color #64748b) below; left-to-right connecting arrows (#0f766e); completed sentence displayed below the node row.`;
+
+// Keep in sync with buildPresentationPrompt() in src/subject/presentation/presentation-prompt.ts
+const PRESENTATION_MODE_PROMPT = `The user selected Tools → Slides. Generate a professional, teaching-quality slide deck with a theme that fits the topic.
+Valid themes: academic, science, business, history, tech, creative.
+Reply with one short introductory sentence naming the topic, audience, and chosen visual theme, then exactly one \`\`\`json fence and no other fences.
+
+JSON schema for a professional 16:9 slide deck:
+{
+  "title": "Deck title",
+  "subtitle": "optional subtitle or course code",
+  "audience": "who this is for (one line)",
+  "theme": "academic | science | business | history | tech | creative",
+  "slides": [
+    {
+      "layout": "title | section | agenda | bullets | twoColumn | comparison | steps | quote | keyFacts | timeline | cards | closing | infographic | chart | diagram | triangle | pyramid | cycle | funnel",
+      "title": "slide title",
+      "subtitle": "optional – for title/section layouts",
+      "bullets": ["max 5 concise bullets ≤10 words each – for bullets/closing layouts"],
+      "left":  { "heading": "left column heading", "bullets": ["…"] },
+      "right": { "heading": "right column heading", "bullets": ["…"] },
+      "quote": "verbatim quote text – for quote layout",
+      "attribution": "Name, Year – for quote layout",
+      "steps": ["Step 1 text", "Step 2 text"],
+      "facts": [{ "label": "Term or milestone", "value": "Definition, date, or metric" }],
+      "cards": [{ "heading": "Card heading", "body": "2-3 sentence description" }],
+      "chartType": "bar | pie | line",
+      "series": [{ "label": "Category or data-point name", "value": 42 }],
+      "nodes": [{ "id": "n1", "label": "Node label", "detail": "optional one-line detail" }],
+      "edges": [{ "from": "n1", "to": "n2", "label": "optional edge label" }],
+      "vertices": [{ "heading": "Vertex heading", "body": "Short body text" }],
+      "levels": [{ "heading": "Top level (apex)", "body": "Short body text" }],
+      "center": "optional center label for cycle or triangle layout",
+      "notes": "speaker notes – always include 1–3 sentences"
+    }
+  ]
+}
+
+THEME RULES:
+- You MUST set "theme" to exactly one of: "academic", "science", "business", "history", "tech", "creative".
+- Choose the theme that best matches the topic and audience — do not default to "academic" when another fit is clearer.
+- Theme options:
+- "academic" (Academic): Deep ink navy + teal + warm gold. Best for general courses, textbooks, exams, and formal classroom teaching.
+- "science" (Science): Forest teal + emerald + cyan. Best for biology, chemistry, physics, medicine, lab topics, and STEM units.
+- "business" (Business): Charcoal slate + indigo + amber. Best for economics, entrepreneurship, career skills, finance, and professional talks.
+- "history" (History): Burgundy + sand + brass. Best for history, literature, humanities, philosophy, and cultural studies.
+- "tech" (Tech): Near-black + electric blue + violet. Best for computer science, AI, coding, engineering, and digital topics.
+- "creative" (Creative): Plum + coral + cream. Best for arts, design, music, creative writing, and expressive subjects.
+
+LAYOUT RULES:
+- First slide MUST use layout "title".
+- Second or third slide SHOULD use layout "agenda" (numbered outline of topics).
+- Last slide MUST use layout "closing" (key takeaways + next step).
+- Include 1–2 "section" slides as chapter dividers on decks with 8+ slides.
+- Every deck MUST include at least 3 visual layouts from: infographic, timeline, chart, diagram, triangle, pyramid, cycle, funnel — choose whichever best fit the topic.
+- "bullets": max 5 items, each ≤10 words.
+- "twoColumn": use when comparing two sides of the same topic.
+- "comparison": use for head-to-head comparisons (left/right with heading + bullets under each).
+- "steps": ordered sequence (processes, algorithms, derivations) with numbered pills.
+- "quote": key theorem, definition, or memorable quote with attribution.
+- "keyFacts": 3–6 term-value pairs for glossary or key metrics slides.
+- "agenda": ordered list – put topic names in "steps" field (not bullets).
+- "timeline": ordered milestones – put milestone name in "facts[].label" and date/description in "facts[].value". Use for any sequence of dates or historical events.
+- "cards": 3–4 equal tiles with a short body – put items in "cards" field.
+- "closing": use "bullets" for 2–3 takeaways; use "subtitle" for the "Next: …" action line.
+- "infographic": 3–6 key stats or KPIs – put items in "facts[]" (label = big number or stat, value = short explanation). Use for "at a glance" or KPI slides.
+- "chart": numeric comparison – set "chartType" to "bar", "pie", or "line" and list data in "series[]" (label + numeric value). 3–8 data points.
+- "diagram": flow or cause-effect – list nodes in "nodes[]" (id, label, optional detail) and "edges[]" (from id → to id, optional label). 3–6 nodes.
+- "triangle": three-part model – put exactly 3 items in "vertices[]" (heading + body). Optional "center" label.
+- "pyramid": hierarchy/tiers – list in "levels[]" top-to-bottom, levels[0] = apex. 3–5 levels.
+- "cycle": feedback loop – list in "steps[]" (3–6 items). Optional "center" label for central concept.
+- "funnel": narrowing stages – list in "steps[]" (3–5 items), first = widest.
+- Visual layout guide: numbers/percentages → chart; dates/sequence → timeline; 3-part model → triangle; hierarchy → pyramid; loop → cycle; narrowing stages → funnel; labeled flow → diagram; KPIs/stats → infographic.
+- Vector layouts only — no photos, no image URLs, no HTML, no Mermaid.
+- Every slide MUST include "notes" with 1–3 sentences of speaker context.
+- Honour the learner's education level in vocabulary and depth.
+- Teaching accuracy is paramount.
+- Generate 8–14 slides total; more is fine for complex topics.
+- Prefer visual layouts over bullet walls wherever content fits.`;
+
 // Keep in sync with TREE_VIZ_JSON_CONTRACT in src/subject/tree-viz/tree-viz-prompt.ts
 const TREE_VIZ_JSON_CONTRACT =
   "Reply with one short intro sentence, then exactly one \\`\\`\\`json fence (no HTML). Fence language MUST be json.\\n\\nJSON schema (hierarchy for an app-owned D3 viewer):\\n{\\n  \\\"layout\\\": \\\"tidy\\\" | \\\"treemap\\\" | \\\"cluster\\\" | \\\"tangled\\\" | \\\"force\\\",\\n  \\\"title\\\": \\\"string\\\",\\n  \\\"goal\\\": \\\"one-line learning goal\\\",\\n  \\\"caption\\\": \\\"Generated tree — teaching model.\\\",\\n  \\\"name\\\": \\\"Root label\\\",\\n  \\\"value\\\": 1,\\n  \\\"children\\\": [\\n    { \\\"name\\\": \\\"Child\\\", \\\"value\\\": 1, \\\"group\\\": \\\"optional\\\", \\\"children\\\": [] }\\n  ]\\n}\\n\\nRULES:\\n- layout MUST match the selected Tools visualization mode.\\n- Build a real teaching hierarchy for the user's topic (depth 2–4, ≥6 leaves).\\n- Every node needs a non-empty \\\"name\\\". Leaves should include numeric \\\"value\\\" ≥ 1 (required for treemap; useful elsewhere).\\n- Optional \\\"group\\\" strings help tangled/force coloring (e.g. categories).\\n- Never emit HTML or D3 code — JSON only inside the fence. Prose stays outside.";
@@ -377,23 +497,33 @@ ${SCIENCE_GRAPH_SCHEMA_EXAMPLE_LINE}
 
   diagram: `The user selected Diagram mode for biology or medical teaching figures.
 
+` +
+    BIOLOGY_DIAGRAM_CATALOG_PRIORITY +
+    `
+
 PATH A — catalog match: If the topic clearly matches a catalog figure, write one short intro sentence, then exactly one \`\`\`json fence (no HTML):
 {"diagramId":"photosynthesis","title":"Photosynthesis overview","focus":"chloroplast light vs dark reactions","labels":[{"id":"thylakoid","title":"Thylakoid","detail":"Membrane stacks where light-dependent reactions split water and make ATP/NADPH."}]}
 diagramId MUST be one of: kidney, nephron, animal_cell, mitosis, heart_flow, food_web, photosynthesis, neuron_synapse, digestive_tract, respiratory_system
-Use kidney for whole-organ renal anatomy; nephron for tubule pathway; animal_cell for organelles; mitosis for cell division; heart_flow for chambers/circulation; food_web for ecosystems; photosynthesis for plant/chloroplast photosynthesis; neuron_synapse for neuron/synapse/action potential overview; digestive_tract for GI organs; respiratory_system for airways/lungs/alveoli.
 Include 4–8 labels with accurate titles + 1–2 sentence teaching details. Keep all prose outside the fence.
 
 PATH B — any other biology/medical topic: Do NOT force a wrong catalog id. GENERATE a publication-quality self-contained textbook diagram NOW.
-Write one short intro sentence, then exactly one \`\`\`html fence with a full document (<!DOCTYPE html>).
 CRITICAL: no PhET/LabXchange/CDNs/external images. All CSS and SVG/JS inline. Fence language MUST be html.
 
-DIAGRAM DESIGN SYSTEM (flat textbook figure — like a modern AP Biology lecture poster):
-- Dark green or teal title bar with uppercase topic title; optional chemical equation row beneath when chemistry applies.
-- Prefer multi-panel layout: left = organism/organ overview with inputs/outputs; right = zoomed organelle/process detail when useful.
-- Molecules as colored labeled circles (CO₂, H₂O, O₂, glucose, ATP, etc.); clear directional arrows; non-overlapping labels; no emoji; no watermarks; no photorealism.
-- Color: page #f1f5f9; card #fff; ink #0f172a; muted #64748b; greens #166534/#16a34a; blue #2563eb; warm #b45309; borders #e2e8f0.
-- Footer caption exactly: "Generated teaching figure — simplified model, not a clinical illustration."
-- Prefer inline SVG for the figure; min-height ~560px; JS optional (static preferred). No CDNs/external images/fonts.
+` +
+    SUBJECT_DIAGRAM_HTML_CONTRACT +
+    `
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    BIOLOGY_DIAGRAM_ADDENDUM +
+    `
 
 Cover anatomy pathways, organs, physiology, cell processes, ecology, or medical teaching schematics as requested. Never claim a diagnosis, clinical scan, or photo of a real patient. Keep all prose outside the fence.`,
 
@@ -401,13 +531,9 @@ Cover anatomy pathways, organs, physiology, cell processes, ecology, or medical 
 Write one short intro sentence, then exactly one \`\`\`html fence with a full document (<!DOCTYPE html>).
 CRITICAL: no PhET/LabXchange/CDNs. All CSS and JS inline.
 
-DESIGN SYSTEM (textbook-quality):
-- Look like a modern AP Biology / university lecture figure — clean, calm, precise. Not a cartoon sketch or toy UI.
-- Typography: system-ui; page title 22–26px semibold; stage titles 13–14px bold uppercase; body labels 11–12px.
-- Color: page bg #f1f5f9; card #ffffff; ink #0f172a; muted #64748b; accent teal #0f766e; secondary blue #1d4ed8; warm #b45309; borders #e2e8f0; radius 12–16px; shadow 0 1px 3px rgba(15,23,42,.08).
-- Spacing: 20–28px padding; aligned columns; no overlapping labels; no emoji.
-- Page structure: header (title + one-line learning goal) → main figure → optional controls → footer caption.
-- Accessibility: dark text on light fills; ≥4.5:1 contrast for labels.
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
 
 LAB REQUIREMENTS:
 - Chrome: title, learning goal, stage/canvas, Play/Pause, Reset, ≥1 labeled slider with live numeric readout, legend, caption.
@@ -444,12 +570,21 @@ Prefer projectile x–t / y–t, v–t, I–V curves, or energy vs time. Use SI 
 Always include annotations + insights. If unclear, use multiLine for projectile x–t and y–t (≥48 points each) or a quadratic/sine model with a slider.
 NEVER use modelId, sceneId, or moleculeId in Graph mode — always use chartType.
 ` + SCIENCE_GRAPH_JSON_CONTRACT,
-  diagram: `The user selected Diagram mode. GENERATE a clear physics diagram now. Do not embed or link PhET or external libraries.
-Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
-CRITICAL: no external scripts or CDNs. All CSS and JS inline.
-Prefer SVG for free-body diagrams, circuits, ray optics, or energy bar charts. Label arrows, forces, currents, or rays clearly.
-Caption: "Generated diagram — teaching model."
-If the topic is unclear, draw a free-body diagram of a block on an incline. Keep JS under 180 lines. Keep all prose outside the fence.`,
+  diagram: `The user selected Diagram mode. GENERATE a publication-quality physics diagram now. Do not embed or link PhET or external libraries.
+` +
+    SUBJECT_DIAGRAM_HTML_CONTRACT +
+    `
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    PHYSICS_DIAGRAM_ADDENDUM,
   sim: `The user selected Lab (Simulate) mode. GENERATE an interactive physics simulation now. Do not embed or link PhET, LabXchange, or any other library.
 Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
 CRITICAL: no external scripts or CDNs. All CSS and JS inline.
@@ -472,14 +607,21 @@ const CHEMISTRY_MODE_PROMPTS: Record<string, string> = {
 Prefer titration curves (pH vs volume), rate vs concentration, reaction energy profiles, or solubility curves.
 If unclear, emit a titration line/area series with ≥40 points (approximate teaching data OK) and labeled axes.
 ` + SCIENCE_GRAPH_JSON_CONTRACT,
-  diagram: `The user selected Diagram mode. GENERATE a clear chemistry diagram now. Do not embed or link PhET or external libraries.
-Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
-CRITICAL: fence language MUST be html (never \`\`\`svg or \`\`\`xml). Put any SVG markup inside <body>. No external scripts, CDNs, or images.
-VISIBILITY: every shape/text must use high-contrast colors (dark text on light fills or light text on dark fills). Never leave empty white regions where content should appear. Size the diagram to fit a 900×560 viewBox or page without clipping.
-PERIODIC TABLE RULE: never build a full 118-element interactive app. If the topic is the periodic table or trends, draw ONLY periods 1–3 (H through Ar) as a static CSS/SVG grid with EVERY cell filled (number + symbol + name), OR draw a labeled trend arrow diagram (electronegativity / atomic radius) across those rows. No search UI, no 118-element data arrays.
-Prefer Lewis structures, mechanism arrows, lab apparatus, or the compact periodic/trend visuals above.
-Caption in the page: "Generated diagram — teaching model."
-If the topic is unclear, draw the Lewis structure of water with lone pairs. Keep JS under 120 lines. Keep all prose outside the fence.`,
+  diagram: `The user selected Diagram mode. GENERATE a publication-quality chemistry diagram now. Do not embed or link PhET or external libraries.
+` +
+    SUBJECT_DIAGRAM_HTML_CONTRACT +
+    `
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    CHEMISTRY_DIAGRAM_ADDENDUM,
   sim: `The user selected Lab (Simulate) mode. GENERATE an interactive chemistry simulation now. Do not embed or link PhET, LabXchange, or any other library.
 Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
 CRITICAL: no external scripts or CDNs. All CSS and JS inline.
@@ -505,12 +647,21 @@ Prefer: temperature vs latitude, rainfall by month (bar), population growth, urb
 If unclear, use chartType "bar" for average monthly rainfall for a tropical city with month index on x and mm on y (≥12 points).
 ` + SCIENCE_GRAPH_JSON_CONTRACT,
 
-  diagram: `The user selected Diagram mode. GENERATE a clear geography diagram now. Do not embed or link PhET or external libraries.
-Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
-CRITICAL: no external scripts or CDNs. All CSS and JS inline.
-Prefer SVG for water cycle, rock cycle, plate boundaries, river long profile, or urban land-use rings. Label arrows and processes clearly.
-Caption: "Generated diagram — teaching model."
-If the topic is unclear, draw the water cycle with evaporation, condensation, precipitation, and runoff. Keep JS under 180 lines. Keep all prose outside the fence.`,
+  diagram: `The user selected Diagram mode. GENERATE a publication-quality geography diagram now. Do not embed or link PhET or external libraries.
+` +
+    SUBJECT_DIAGRAM_HTML_CONTRACT +
+    `
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    GEOGRAPHY_DIAGRAM_ADDENDUM,
 
   sim: `The user selected Lab (Simulate) mode. GENERATE an interactive geography simulation now. Do not embed or link PhET, ArcGIS, or any other library.
 Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
@@ -587,12 +738,21 @@ Prefer: war timelines, dynasty successions, revolutions, Cold War phases, indepe
 Caption: "Generated timeline - teaching model; dates are approximate teaching markers."
 If the topic is unclear, build a World War I timeline (1914–1918) with major turning points and a theater toggle. Keep JS under 220 lines. Keep all prose outside the fence.`,
 
-  diagram: `The user selected Diagram mode. GENERATE a clear history diagram now. Do not embed or link PhET or external libraries.
-Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
-CRITICAL: no external scripts or CDNs. All CSS and JS inline.
-Prefer SVG for cause-and-effect chains, feudal pyramids, revolutionary stages, alliance webs, colonial trade triangles, or government structure of a past regime. Label arrows, actors, and dates clearly.
-Caption: "Generated diagram - teaching model."
-If the topic is unclear, diagram the MAIN long-term and short-term causes of World War I with labeled arrows. Keep JS under 180 lines. Keep all prose outside the fence.`,
+  diagram: `The user selected Diagram mode. GENERATE a publication-quality history diagram now. Do not embed or link PhET or external libraries.
+` +
+    SUBJECT_DIAGRAM_HTML_CONTRACT +
+    `
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    HISTORY_DIAGRAM_ADDENDUM,
 
   sim: `The user selected Lab (Simulate) mode. GENERATE an interactive history simulation now. Do not embed or link PhET, ArcGIS, or any other library.
 Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
@@ -663,12 +823,21 @@ Prefer: argumentative essay, literary analysis paragraph, narrative opening, PEE
 Caption: "Generated writing workshop - teaching model; revise in your own voice."
 If the topic is unclear, build a PEEL paragraph workshop on "Should schools start later?" Keep JS under 220 lines. Keep all prose outside the fence.`,
 
-  diagram: `The user selected Diagram mode. GENERATE a clear English / literature diagram now. Do not embed or link external libraries.
-Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
-CRITICAL: no external scripts or CDNs. All CSS and JS inline.
-Prefer SVG for plot arcs (exposition→climax→resolution), character relationship webs, rhetorical triangle (ethos/pathos/logos), Freytag pyramid, theme webs, or sentence structure trees. Label parts clearly.
-Caption: "Generated diagram - teaching model."
-If the topic is unclear, diagram Freytag's pyramid for a short story with labeled stages. Keep JS under 180 lines. Keep all prose outside the fence.`,
+  diagram: `The user selected Diagram mode. GENERATE a publication-quality English / literature diagram now. Do not embed or link external libraries.
+` +
+    SUBJECT_DIAGRAM_HTML_CONTRACT +
+    `
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    ENGLISH_DIAGRAM_ADDENDUM,
 
   sim: `The user selected Lab (Practice) mode. GENERATE an interactive English practice lab now. Do not embed or link external libraries.
 Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
@@ -753,10 +922,21 @@ Keep JS under 200 lines. Prose outside the fence.`,
   diagram: `The user selected Diagram mode for Dzongkha (practice UI only — Library mode is the accuracy path).
 ${DZONGKHA_SEED_LEXICON}
 If the request needs non-seed vocabulary: one English sentence only — switch to Library. No html fence.
-Otherwise: one short English intro + one \`\`\`html fence (<!DOCTYPE html>), no CDNs.
+Otherwise: one short English intro + one \`\`\`html fence (<!DOCTYPE html>), no CDNs. All CSS/JS inline.
 SVG diagram for S-O-V using ONLY seed tokens, e.g. ང | དགེ་རྒན | ཨིང → ང་དགེ་རྒན་ཨིང། with romanization under each node. Label that ཨིང/རེད are Dzongkha equatives (not Tibetan ཡིན).
 Caption: "Grammar practice from verified seed list — for other examples use Library mode."
-Keep JS under 180 lines. Prose outside the fence.`,
+Keep JS under 180 lines. Prose outside the fence.
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    DZONGKHA_DIAGRAM_ADDENDUM,
 
   sim: `The user selected Lab (Practice) mode for Dzongkha (practice UI only — Library mode is the accuracy path).
 ${DZONGKHA_SEED_LEXICON}
@@ -792,6 +972,7 @@ function buildSystemPrompt(
   englishMode?: string,
   dzongkhaMode?: string,
   treeVizMode?: string,
+  presentation?: boolean,
 ): string {
   const parts = [SYSTEM_PROMPT];
   // Education stage first so subject/mode prompts cannot quietly override audience depth.
@@ -838,11 +1019,14 @@ function buildSystemPrompt(
   if (treeVizMode && TREE_VIZ_MODE_PROMPTS[treeVizMode]) {
     parts.push(TREE_VIZ_MODE_PROMPTS[treeVizMode]);
   }
+  if (presentation) {
+    parts.push(PRESENTATION_MODE_PROMPT);
+  }
   // Pace chip last among depth cues — only fine-tunes within the education stage.
   if (subject === 'personal' && tutorLevel && TUTOR_LEVEL_PROMPTS[tutorLevel]) {
     parts.push(TUTOR_LEVEL_PROMPTS[tutorLevel]);
   }
-  // Mind-map formatting never applies in Coding, Personal Tutor, or generated lab modes.
+  // Mind-map formatting never applies in Coding, Personal Tutor, generated lab modes, or Slides.
   if (
     mindMap &&
     subject !== 'coding' &&
@@ -854,7 +1038,8 @@ function buildSystemPrompt(
     !historyMode &&
     !englishMode &&
     !(dzongkhaMode && dzongkhaMode !== 'library') &&
-    !treeVizMode
+    !treeVizMode &&
+    !presentation
   ) {
     parts.push(MIND_MAP_PROMPT);
   }
@@ -979,6 +1164,7 @@ Deno.serve(async (req) => {
   let englishMode: string | undefined;
   let dzongkhaMode: string | undefined;
   let treeVizMode: string | undefined;
+  let presentation = false;
   try {
     const body = await req.json();
     conversationId = body?.conversationId;
@@ -1039,6 +1225,7 @@ Deno.serve(async (req) => {
       typeof body?.treeVizMode === 'string' && body.treeVizMode in TREE_VIZ_MODE_PROMPTS
         ? body.treeVizMode
         : undefined;
+    presentation = body?.presentation === true;
     dzongkhaMode =
       typeof body?.dzongkhaMode === 'string' &&
       (body.dzongkhaMode === 'library' || body.dzongkhaMode in DZONGKHA_MODE_PROMPTS)
@@ -1112,6 +1299,7 @@ Deno.serve(async (req) => {
     englishMode,
     dzongkhaMode,
     treeVizMode,
+    presentation,
   );
 
   const promptMessages: ChatMessage[] = [];

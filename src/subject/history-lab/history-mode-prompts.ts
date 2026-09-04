@@ -1,5 +1,11 @@
 import type { HistoryMode } from '@/types/chat';
 import type { SubjectPrompts } from '@/subject/subjects/types';
+import {
+  HISTORY_DIAGRAM_ADDENDUM,
+  SUBJECT_DIAGRAM_ACCURACY_RULES,
+  SUBJECT_DIAGRAM_DESIGN_SYSTEM,
+  SUBJECT_DIAGRAM_HTML_CONTRACT,
+} from '@/subject/diagram-prompt';
 
 /**
  * History generate modes - keep in sync with HISTORY_MODE_PROMPTS in
@@ -14,12 +20,21 @@ Prefer: war timelines, dynasty successions, revolutions, Cold War phases, indepe
 Caption: "Generated timeline - teaching model; dates are approximate teaching markers."
 If the topic is unclear, build a World War I timeline (1914–1918) with major turning points and a theater toggle. Keep JS under 220 lines. Keep all prose outside the fence.`,
 
-  diagram: `The user selected Diagram mode. GENERATE a clear history diagram now. Do not embed or link PhET or external libraries.
-Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
-CRITICAL: no external scripts or CDNs. All CSS and JS inline.
-Prefer SVG for cause-and-effect chains, feudal pyramids, revolutionary stages, alliance webs, colonial trade triangles, or government structure of a past regime. Label arrows, actors, and dates clearly.
-Caption: "Generated diagram - teaching model."
-If the topic is unclear, diagram the MAIN long-term and short-term causes of World War I with labeled arrows. Keep JS under 180 lines. Keep all prose outside the fence.`,
+  diagram: `The user selected Diagram mode. GENERATE a publication-quality history diagram now. Do not embed or link PhET or external libraries.
+` +
+    SUBJECT_DIAGRAM_HTML_CONTRACT +
+    `
+
+` +
+    SUBJECT_DIAGRAM_DESIGN_SYSTEM +
+    `
+
+` +
+    SUBJECT_DIAGRAM_ACCURACY_RULES +
+    `
+
+` +
+    HISTORY_DIAGRAM_ADDENDUM,
 
   sim: `The user selected Lab (Simulate) mode. GENERATE an interactive history simulation now. Do not embed or link PhET, ArcGIS, or any other library.
 Write one short intro sentence, then exactly one \`\`\`html fence with a complete document (<!DOCTYPE html>).
@@ -89,7 +104,7 @@ export const HISTORY_MODE_PLACEHOLDERS: Record<HistoryMode, string> = {
 
 export const HISTORY_EMPTY_STATE_HINTS: Record<HistoryMode, string> = {
   timeline: 'Describe an era or event — a teaching timeline appears here.',
-  diagram: 'Describe causes or structures — a labeled history diagram appears here.',
+  diagram: 'Name causes, actors, and dates to include — e.g. WWI causes, feudal pyramid. Use Map for real locations.',
   sim: 'Describe a process — an interactive history lab appears here.',
   map: 'Name a place or campaign — a historical Leaflet map loads here.',
 };

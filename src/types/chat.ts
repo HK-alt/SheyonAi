@@ -42,6 +42,8 @@ export type Message = {
   flashcards?: boolean;
   /** True when this assistant message includes an interactive quiz (Quiz mode). */
   quiz?: boolean;
+  /** True when this assistant message is a structured slide deck (Slides mode). */
+  presentation?: boolean;
   /** True when this assistant message is a structured Hint-mode note. */
   tutorHint?: boolean;
   /** True when this assistant message is an interactive Coach-mode note. */
@@ -135,6 +137,8 @@ export type SendMessagePayload = {
   dzongkhaMode?: DzongkhaMode;
   /** Home Tools D3 tree visualization layout. */
   treeVizMode?: TreeVizMode;
+  /** When true, DeepSeek returns structured slide JSON for a .pptx presentation. */
+  presentation?: boolean;
 };
 
 export type { Subject };

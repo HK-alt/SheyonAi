@@ -284,6 +284,56 @@ export type Database = {
         };
         Relationships: [];
       };
+      app_config: {
+        Row: {
+          key: string;
+          value: Json;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          value: Json;
+          updated_at?: string;
+        };
+        Update: {
+          key?: string;
+          value?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_roles: {
+        Row: {
+          user_id: string;
+          role: AppRole;
+          is_disabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          role?: AppRole;
+          is_disabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          role?: AppRole;
+          is_disabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_roles_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -306,9 +356,97 @@ export type Database = {
           similarity: number;
         }[];
       };
+      update_user_role: {
+        Args: { p_user_id: string; p_role: AppRole };
+        Returns: void;
+      };
+      admin_message_counts: {
+        Args: { days_back?: number };
+        Returns: { day: string; total: number }[];
+      };
+      admin_role_counts: {
+        Args: Record<string, never>;
+        Returns: { role: AppRole; total: number }[];
+      };
+      admin_list_users: {
+        Args: Record<string, never>;
+        Returns: {
+          user_id: string;
+          email: string;
+          full_name: string | null;
+          role: AppRole;
+          is_disabled: boolean;
+          created_at: string;
+          last_sign_in_at: string | null;
+        }[];
+      };
+      admin_set_user_disabled: {
+        Args: { p_user_id: string; p_disabled: boolean };
+        Returns: void;
+      };
+      admin_check_user_status: {
+        Args: { p_user_id?: string };
+        Returns: { role: AppRole; is_disabled: boolean };
+      };
+      admin_usage_summary: {
+        Args: { days_back?: number };
+        Returns: {
+          total_prompt_tokens: number;
+          total_completion_tokens: number;
+          by_model: {
+            model: string;
+            prompt_tokens: number;
+            completion_tokens: number;
+            calls: number;
+          }[];
+          top_users: {
+            email: string;
+            prompt_tokens: number;
+            completion_tokens: number;
+            calls: number;
+          }[];
+        };
+      };
+      admin_list_conversations: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string | null };
+        Returns: {
+          id: string;
+          title: string;
+          user_email: string;
+          user_id: string;
+          message_count: number;
+          updated_at: string;
+          created_at: string;
+        }[];
+      };
+      admin_conversation_messages: {
+        Args: { p_conversation_id: string };
+        Returns: { id: string; role: string; content: string; created_at: string }[];
+      };
+      admin_recent_activity: {
+        Args: { p_limit?: number };
+        Returns: {
+          event_type: string;
+          label: string;
+          detail: string;
+          occurred_at: string;
+        }[];
+      };
+      admin_get_config: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      admin_set_config: {
+        Args: { p_key: string; p_value: Json };
+        Returns: void;
+      };
+      is_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
     };
     Enums: {
-      [_ in never]: never;
+      app_role: AppRole;
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -316,12 +454,20 @@ export type Database = {
   };
 };
 
+// ============================================================
+// App-level role type
+// ============================================================
+
+export type AppRole = 'admin' | 'teacher' | 'student';
+
 // Legacy aliases used elsewhere in the app
 export type MessageRole = 'user' | 'assistant';
 
 export type ConversationRow = Database['public']['Tables']['conversations']['Row'];
 export type MessageRow = Database['public']['Tables']['messages']['Row'];
 export type UsageLogRow = Database['public']['Tables']['usage_log']['Row'];
+
+export type UserRoleRow = Database['public']['Tables']['user_roles']['Row'];
 
 export type MessageAttachmentRow = {
   path: string;
